@@ -1,0 +1,2 @@
+mediamtx filter=lfs diff=lfs merge=lfs -text
+Defect-_Detection_PCBA/mediamtx/** filter=lfs diff=lfs merge=lfs -text
