@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>PCB 缺陷批量检测</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css" />
+    <style>
+        body {background:#f4f6f9; font-size: 0.95rem;}
+        .thumb {max-width: 240px; margin:10px; border:1px solid #ccc; padding:5px; background:#fff;}
+        .thumb img{max-width:100%; height:auto; display:block;}
+        h1 {font-size: 2rem;}
+        h3 {font-size: 1.4rem;}
+        .form-control, .form-label, .col-form-label {font-size: 0.95rem;}
+        .btn {font-size: 0.95rem;}
+        .table th, .table td {font-size: 0.9rem;}
+    </style>
+</head>
+<body>
+<div class="container py-4">
+    <h1 class="mb-4">PCB 批量缺陷检测</h1>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-auto">
+                    <label class="col-form-label">输入目录</label>
+                </div>
+                <div class="col-auto">
+                    <input type="text" id="inputDir" class="form-control" value="dates/images" />
+                </div>
+                <div class="col-auto">
+                    <label class="col-form-label">置信度</label>
+                </div>
+                <div class="col-auto">
+                    <input type="number" step="0.01" id="confThresh" class="form-control" value="0.3" />
+                </div>
+                <div class="col-auto">
+                    <label class="col-form-label">NMS</label>
+                </div>
+                <div class="col-auto">
+                    <input type="number" step="0.01" id="nmsThresh" class="form-control" value="0.7" />
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary" id="runBtn">开始检测</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="alertBox"></div>
+
+    <h3>检测结果</h3>
+    <table id="resultTable" class="table table-striped table-bordered" style="width:100%">
+        <thead>
+            <tr>
+                <th>缩略图</th>
+                <th>文件名</th>
+                <th>缺陷数量</th>
+                <th>缺陷详情</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script src="/static/js/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="/static/css/jquery.dataTables.min.css" />
+<script src="/static/js/jquery.dataTables.min.js"></script>
+<script src="/static/js/bootstrap.bundle.min.js"></script>
+<script>
+const runBtn = document.getElementById('runBtn');
+const alertBox = document.getElementById('alertBox');
+let dataTable = null;
+
+function showAlert(msg,type='info'){
+    alertBox.innerHTML=`<div class="alert alert-${type} alert-dismissible" role="alert">${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+}
+
+runBtn.addEventListener('click',async()=>{
+    runBtn.disabled=true;
+    showAlert('正在执行检测，请稍候...','warning');
+    if(dataTable){dataTable.clear().draw();}
+    try{
+        const res = await fetch('/api/run_detect',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+                input_dir: document.getElementById('inputDir').value.trim(),
+                conf_thresh: document.getElementById('confThresh').value,
+                nms_thresh: document.getElementById('nmsThresh').value
+            })
+        });
+        const data = await res.json();
+        if(!data.success){throw new Error(data.message || '检测失败');}
+        showAlert('检测完成，共生成 '+data.images.length+' 张结果','success');
+        if(!dataTable){
+            dataTable = $('#resultTable').DataTable();
+        }
+        const rows = data.images.map(img=>{
+            const defects = data.detections[img] || [];
+            const detailHtml = defects.map(d=>`${d.category} (${d.score.toFixed(2)})`).join('<br/>');
+            return [
+                `<a href="/results/${img}" target="_blank"><img src="/results/${img}" style="max-width:120px"/></a>`,
+                img,
+                defects.length,
+                detailHtml
+            ];
+        });
+        dataTable.rows.add(rows).draw();
+    }catch(err){
+        showAlert(err.message,'danger');
+    }finally{
+        runBtn.disabled=false;
+    }
+});
+</script>
+</body>
+</html> 

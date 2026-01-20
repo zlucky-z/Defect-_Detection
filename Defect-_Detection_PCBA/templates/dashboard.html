@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCB缺陷检测系统 - 智能监控平台</title>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1128 100%);
+            font-family: 'Microsoft YaHei', 'Arial', sans-serif;
+            overflow: hidden;
+            color: #fff;
+        }
+        
+        html, body {
+            height: 100vh;
+            max-height: 100vh;
+        }
+        
+        .sidebar {
+            background: linear-gradient(180deg, #0a0d1f, #151932, #0a0d1f);
+            min-height: 100vh;
+            width: 220px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.8);
+            border-right: 1px solid rgba(0, 162, 255, 0.2);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 10px 18px;
+            border-radius: 6px;
+            margin: 3px 12px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: linear-gradient(90deg, rgba(0, 162, 255, 0.2), rgba(0, 162, 255, 0.05));
+            color: #00d4ff;
+            border-left: 3px solid #00a2ff;
+        }
+        
+        .main-content {
+            margin-left: 220px;
+            padding: 10px;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 顶部标题栏 */
+        .top-header {
+            background: linear-gradient(90deg, rgba(0, 30, 60, 0.6), rgba(0, 50, 100, 0.4));
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 0 20px rgba(0, 162, 255, 0.2);
+        }
+        
+        .system-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+            letter-spacing: 2px;
+        }
+        
+        .top-stats {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+        
+        .top-stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .top-stat-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+        }
+        
+        .top-stat-value {
+            color: #00d4ff;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        /* 主内容区域 */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr 320px;
+            grid-template-rows: 1fr 200px;
+            gap: 10px;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        /* 左侧仪表盘区域 */
+        .left-panel {
+            grid-column: 1;
+            grid-row: 1 / 3;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+        }
+        
+        .gauge-card {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .gauge-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00a2ff, transparent);
+        }
+        
+        .gauge-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            margin: 10px auto;
+        }
+        
+        .circular-chart {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        .circle-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 3.8;
+        }
+        
+        .circle {
+            fill: none;
+            stroke-width: 3.8;
+            stroke-linecap: round;
+            animation: progress 1s ease-out forwards;
+        }
+        
+        @keyframes progress {
+            0% {
+                stroke-dasharray: 0 100;
+            }
+        }
+        
+        .percentage {
+            fill: #fff;
+            font-size: 0.5em;
+            text-anchor: middle;
+            font-weight: 700;
+        }
+        
+        .gauge-label {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.95rem;
+            margin-top: 5px;
+        }
+        
+        .gauge-sublabel {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem;
+        }
+        
+        /* 中间监控视频区域 */
+        .center-panel {
+            grid-column: 2;
+            grid-row: 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .video-card {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.9), rgba(15, 25, 45, 0.8));
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        .video-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent);
+            padding: 8px 12px;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .video-title {
+            color: #00d4ff;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .video-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        
+        .video-content {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
+        }
+        
+        .video-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0a0e1f, #141929);
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 3rem;
+        }
+        
+        /* 右侧数据统计区域 */
+        .right-panel {
+            grid-column: 3;
+            grid-row: 1 / 3;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        .stat-card h6 {
+            color: #00d4ff;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-item-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+        }
+        
+        .stat-item-value {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .bar-chart-container {
+            height: 200px;
+            position: relative;
+        }
+        
+        /* 底部趋势图 */
+        .bottom-panel {
+            grid-column: 2;
+            grid-row: 2;
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        .bottom-panel h6 {
+            color: #00d4ff;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        
+        .chart-container {
+            height: calc(100% - 30px);
+            position: relative;
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 162, 255, 0.3);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 162, 255, 0.5);
+        }
+        
+        /* 实时数据列表 */
+        .activity-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            padding: 10px;
+            border-left: 3px solid #00a2ff;
+            margin-bottom: 8px;
+            background: rgba(0, 162, 255, 0.1);
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .activity-time {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem;
+        }
+        
+        .activity-desc {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+        
+        /* 系统资源监控 */
+        .resource-item {
+            margin-bottom: 15px;
+        }
+        
+        .resource-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+        }
+        
+        .progress {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00a2ff, #00d4ff);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(0, 162, 255, 0.5);
+        }
+        
+        .progress-bar.warning {
+            background: linear-gradient(90deg, #ffa500, #ffcc00);
+            box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+        }
+        
+        .progress-bar.danger {
+            background: linear-gradient(90deg, #ff4444, #ff6666);
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <nav class="sidebar">
+        <div class="p-3 text-center border-bottom" style="border-color: rgba(0, 162, 255, 0.2) !important;">
+            <h4 class="text-white mb-0" style="font-size: 1.2rem;">
+                <i class="bi bi-cpu-fill me-2" style="color: #00d4ff;"></i>PCB缺陷检测
+            </h4>
+            <small class="text-white-50" style="font-size: 0.75rem;">Industrial AI Platform</small>
+        </div>
+        <ul class="nav flex-column mt-3">
+            <li class="nav-item">
+                <a class="nav-link active" href="/">
+                    <i class="bi bi-speedometer2 me-2"></i>仪表板
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/detection">
+                    <i class="bi bi-search me-2"></i>检测管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/rtsp-monitor">
+                    <i class="bi bi-camera-video me-2"></i>数据大屏
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/history">
+                    <i class="bi bi-clock-history me-2"></i>检测历史
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/monitoring">
+                    <i class="bi bi-graph-up me-2"></i>系统监控
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings">
+                    <i class="bi bi-gear me-2"></i>系统设置
+                </a>
+            </li>
+        </ul>
+        <div class="position-absolute bottom-0 w-100 p-3">
+            <div class="d-flex align-items-center" style="color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">
+                <i class="bi bi-person-circle me-2"></i>
+                <span id="username">管理员</span>
+            </div>
+            <button class="btn btn-sm btn-outline-light mt-2 w-100" onclick="logout()" style="font-size: 0.85rem; padding: 5px;">
+                <i class="bi bi-box-arrow-right me-1"></i>退出登录
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        <!-- 顶部标题栏 -->
+        <div class="top-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="system-title" style="flex: 1; text-align: center;">
+                    <i class="bi bi-grid-3x3-gap-fill me-2"></i>PCBA板AI智能分析系统
+                </div>
+                <div class="top-stats">
+                    <div class="top-stat-item">
+                        <i class="bi bi-clock text-info"></i>
+                        <span class="top-stat-label">当前时间：</span>
+                        <span class="top-stat-value" id="currentTime">--</span>
+                    </div>
+                    <div class="top-stat-item">
+                        <i class="bi bi-wifi text-success"></i>
+                        <span class="top-stat-label">系统状态：</span>
+                        <span class="top-stat-value text-success">在线运行</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主仪表盘网格 -->
+        <div class="dashboard-grid">
+            <!-- 左侧仪表盘 -->
+            <div class="left-panel">
+                <!-- 设备运行状况 -->
+                <div class="gauge-card">
+                    <div class="gauge-container">
+                        <svg viewBox="0 0 36 36" class="circular-chart">
+                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                            <path class="circle" stroke="#00ff88" stroke-dasharray="79, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                            <text x="18" y="20.35" class="percentage" id="deviceStatusPercent">79%</text>
+                        </svg>
+                    </div>
+                    <div class="gauge-label">设备运行状况</div>
+                    <div class="gauge-sublabel">正常运行中</div>
+                </div>
+
+                <!-- 合格率 -->
+                <div class="gauge-card">
+                    <div class="gauge-container">
+                        <svg viewBox="0 0 36 36" class="circular-chart">
+                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                            <path class="circle" stroke="#00a2ff" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" id="passRateCircle"/>
+                            <text x="18" y="20.35" class="percentage" id="passRatePercent">0%</text>
+                        </svg>
+                    </div>
+                    <div class="gauge-label">产品合格率</div>
+                    <div class="gauge-sublabel" id="passRateSubLabel">暂无数据</div>
+                </div>
+
+                <!-- 系统资源 -->
+                <div class="gauge-card">
+                    <h6 style="color: #00d4ff; font-size: 0.9rem; margin-bottom: 15px;">
+                        <i class="bi bi-cpu me-2"></i>系统资源
+                    </h6>
+                    <div class="resource-item">
+                        <div class="resource-label">
+                            <span style="color: rgba(255, 255, 255, 0.7);">CPU使用率</span>
+                            <span style="color: #fff;" id="cpuUsage">0%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" id="cpuBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="resource-item">
+                        <div class="resource-label">
+                            <span style="color: rgba(255, 255, 255, 0.7);">内存使用率</span>
+                            <span style="color: #fff;" id="memoryUsage">0%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" id="memoryBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="resource-item">
+                        <div class="resource-label">
+                            <span style="color: rgba(255, 255, 255, 0.7);">磁盘使用率</span>
+                            <span style="color: #fff;" id="diskUsage">0%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar" id="diskBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中间视频监控 -->
+            <div class="center-panel">
+                <div class="video-card">
+                    <div class="video-header">
+                        <span class="video-title">生产线A - 01号位</span>
+                        <div class="video-status">
+                            <span class="status-dot"></span>
+                            <span>实时</span>
+                        </div>
+                    </div>
+                    <div class="video-placeholder">
+                        <i class="bi bi-camera-video"></i>
+                    </div>
+                </div>
+                <div class="video-card">
+                    <div class="video-header">
+                        <span class="video-title">生产线A - 02号位</span>
+                        <div class="video-status">
+                            <span class="status-dot"></span>
+                            <span>实时</span>
+                        </div>
+                    </div>
+                    <div class="video-placeholder">
+                        <i class="bi bi-camera-video"></i>
+                    </div>
+                </div>
+                <div class="video-card">
+                    <div class="video-header">
+                        <span class="video-title">生产线B - 01号位</span>
+                        <div class="video-status">
+                            <span class="status-dot"></span>
+                            <span>实时</span>
+                        </div>
+                    </div>
+                    <div class="video-placeholder">
+                        <i class="bi bi-camera-video"></i>
+                    </div>
+                </div>
+                <div class="video-card">
+                    <div class="video-header">
+                        <span class="video-title">生产线B - 02号位</span>
+                        <div class="video-status">
+                            <span class="status-dot"></span>
+                            <span>实时</span>
+                        </div>
+                    </div>
+                    <div class="video-placeholder">
+                        <i class="bi bi-camera-video"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧数据统计 -->
+            <div class="right-panel">
+                <!-- 检测统计 -->
+                <div class="stat-card">
+                    <h6><i class="bi bi-bar-chart-fill"></i>检测数据统计</h6>
+                    <div class="stat-item">
+                        <span class="stat-item-label">今日检测数</span>
+                        <span class="stat-item-value" id="todayInspections">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-item-label">总检测次数</span>
+                        <span class="stat-item-value" id="totalInspections">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-item-label">发现缺陷</span>
+                        <span class="stat-item-value text-danger" id="defectsFound">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-item-label">处理速度</span>
+                        <span class="stat-item-value" id="processingSpeed">0 张/秒</span>
+                    </div>
+                </div>
+
+                <!-- 缺陷类型分布 -->
+                <div class="stat-card">
+                    <h6><i class="bi bi-pie-chart-fill"></i>缺陷类型分布</h6>
+                    <div class="bar-chart-container">
+                        <canvas id="defectTypeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 最近检测活动 -->
+                <div class="stat-card">
+                    <h6><i class="bi bi-activity"></i>最近检测记录</h6>
+                    <div class="activity-list" id="recentActivities">
+                        <div style="text-align: center; color: rgba(255, 255, 255, 0.4); padding: 20px;">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p style="margin-top: 10px; font-size: 0.85rem;">暂无检测记录</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部趋势图 -->
+            <div class="bottom-panel">
+                <h6><i class="bi bi-graph-up"></i>检测趋势分析（最近7天）</h6>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/jquery-3.6.0.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/chart.min.js"></script>
+    <script>
+        let trendChart, defectChart;
+
+        // 更新时间显示
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            document.getElementById('currentTime').textContent = timeStr;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // 初始化图表
+        function initCharts() {
+            // 趋势图
+            const ctx1 = document.getElementById('trendChart').getContext('2d');
+            trendChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '检测数量',
+                        data: [],
+                        borderColor: '#00a2ff',
+                        backgroundColor: 'rgba(0, 162, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: '缺陷数量',
+                        data: [],
+                        borderColor: '#ff4444',
+                        backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                font: { size: 11 }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.6)', font: { size: 10 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.6)', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+
+            // 缺陷类型分布
+            const ctx2 = document.getElementById('defectTypeChart').getContext('2d');
+            defectChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['划痕', '缺损', '污渍', '气泡', '其他'],
+                    datasets: [{
+                        label: '数量',
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: [
+                            'rgba(0, 162, 255, 0.8)',
+                            'rgba(0, 255, 136, 0.8)',
+                            'rgba(255, 165, 0, 0.8)',
+                            'rgba(255, 68, 68, 0.8)',
+                            'rgba(138, 43, 226, 0.8)'
+                        ],
+                        borderColor: [
+                            '#00a2ff',
+                            '#00ff88',
+                            '#ffa500',
+                            '#ff4444',
+                            '#8a2be2'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: 'rgba(255, 255, 255, 0.6)', font: { size: 10 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.6)', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新进度条样式
+        function updateProgressBar(element, value) {
+            element.style.width = value + '%';
+            if (value > 80) {
+                element.classList.add('danger');
+                element.classList.remove('warning');
+            } else if (value > 60) {
+                element.classList.add('warning');
+                element.classList.remove('danger');
+            } else {
+                element.classList.remove('warning', 'danger');
+            }
+        }
+
+        // 加载仪表盘数据
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/dashboard-stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 更新统计数据
+                    document.getElementById('totalInspections').textContent = data.stats.total_inspections || 0;
+                    document.getElementById('todayInspections').textContent = data.stats.today_inspections || 0;
+                    document.getElementById('defectsFound').textContent = data.stats.defects_found || 0;
+                    document.getElementById('processingSpeed').textContent = (data.stats.processing_speed || 0) + ' 张/秒';
+                    
+                    // 更新合格率
+                    const passRate = data.stats.pass_rate || 0;
+                    document.getElementById('passRatePercent').textContent = passRate + '%';
+                    document.getElementById('passRateCircle').setAttribute('stroke-dasharray', passRate + ', 100');
+                    document.getElementById('passRateSubLabel').textContent = 
+                        data.stats.total_inspections > 0 ? 
+                        `合格 ${Math.round(data.stats.total_inspections * passRate / 100)} / 总计 ${data.stats.total_inspections}` : 
+                        '暂无数据';
+                    
+                    // 更新系统资源
+                    if (data.system) {
+                        const cpu = data.system.cpu_usage || 0;
+                        const memory = data.system.memory_usage || 0;
+                        const disk = data.system.disk_usage || 0;
+                        
+                        document.getElementById('cpuUsage').textContent = cpu + '%';
+                        document.getElementById('memoryUsage').textContent = memory + '%';
+                        document.getElementById('diskUsage').textContent = disk + '%';
+                        
+                        updateProgressBar(document.getElementById('cpuBar'), cpu);
+                        updateProgressBar(document.getElementById('memoryBar'), memory);
+                        updateProgressBar(document.getElementById('diskBar'), disk);
+                    }
+                    
+                    // 更新趋势图
+                    if (data.trend) {
+                        trendChart.data.labels = data.trend.labels || [];
+                        trendChart.data.datasets[0].data = data.trend.inspections || [];
+                        trendChart.data.datasets[1].data = data.trend.defects || [];
+                        trendChart.update();
+                    }
+                    
+                    // 更新缺陷类型分布
+                    if (data.defect_types) {
+                        defectChart.data.datasets[0].data = data.defect_types;
+                        defectChart.update();
+                    }
+                    
+                    // 更新最近活动
+                    updateRecentActivities(data.recent_detections || []);
+                }
+            } catch (error) {
+                console.error('加载数据失败:', error);
+            }
+        }
+
+        // 更新最近活动
+        function updateRecentActivities(activities) {
+            const container = document.getElementById('recentActivities');
+            
+            if (!activities || activities.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: rgba(255, 255, 255, 0.4); padding: 20px;">
+                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                        <p style="margin-top: 10px; font-size: 0.85rem;">暂无检测记录</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '';
+            activities.slice(0, 10).forEach(activity => {
+                const item = document.createElement('div');
+                item.className = 'activity-item';
+                const status = activity.total_defects > 0 ? 
+                    '<span style="color: #ff4444;">有缺陷</span>' : 
+                    '<span style="color: #00ff88;">正常</span>';
+                item.innerHTML = `
+                    <div class="activity-time">${activity.timestamp || '--'}</div>
+                    <div class="activity-desc">
+                        检测 <strong>${activity.total_images || 0}</strong> 张图片 | ${status} | 用时 ${activity.processing_time || 0}s
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // 退出登录
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('退出失败:', error);
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            loadDashboardData();
+            
+            // 定期刷新数据
+            setInterval(loadDashboardData, 5000);
+        });
+    </script>
+</body>
+</html>
+
+</html> 

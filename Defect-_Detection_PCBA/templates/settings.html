@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCB缺陷检测系统 - 系统设置</title>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1128 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, #0a0d1f, #151932, #0a0d1f);
+            min-height: 100vh;
+            width: 250px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.8);
+            border-right: 1px solid rgba(0, 162, 255, 0.2);
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 10px 18px;
+            border-radius: 6px;
+            margin: 3px 12px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: linear-gradient(90deg, rgba(0, 162, 255, 0.2), rgba(0, 162, 255, 0.05));
+            color: #00d4ff;
+            border-left: 3px solid #00a2ff;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        .settings-card {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border-radius: 15px;
+            padding: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .nav-tabs .nav-link {
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 12px 20px;
+            font-size: 0.95rem;
+        }
+        .nav-tabs .nav-link.active {
+            background: linear-gradient(90deg, #00a2ff, #00d4ff);
+            color: white;
+            border-radius: 8px;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+            background: rgba(40, 40, 60, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            padding: 8px 12px;
+        }
+        .form-control[type="file"] {
+            background: rgba(40, 40, 60, 0.6);
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .form-control[type="file"]::file-selector-button {
+            background: rgba(0, 162, 255, 0.6);
+            color: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin-right: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .form-control[type="file"]::file-selector-button:hover {
+            background: rgba(0, 162, 255, 0.8);
+        }
+        .form-control:focus, .form-select:focus {
+            background: rgba(40, 40, 60, 0.8);
+            border-color: #00a2ff;
+            color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 0.2rem rgba(0, 162, 255, 0.25);
+        }
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        option {
+            background: rgba(26, 26, 46, 0.95);
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .btn-save {
+            background: linear-gradient(90deg, #00a2ff, #00d4ff);
+            border: none;
+            color: white;
+            padding: 12px 35px;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 162, 255, 0.5);
+        }
+        .setting-item {
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .form-label {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        .form-check-label {
+            color: rgba(255, 255, 255, 0.85);
+        }
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+        .table tbody tr {
+            background: rgba(30, 30, 50, 0.4);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .table tbody tr:hover {
+            background: rgba(40, 40, 60, 0.6);
+        }
+        .table tbody td {
+            background: transparent;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .tab-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .tab-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        .tab-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        .tab-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <nav class="sidebar">
+        <div class="p-3 text-center border-bottom" style="border-color: rgba(0, 162, 255, 0.2) !important;">
+            <h4 class="text-white mb-0" style="font-size: 1.2rem;">
+                <i class="bi bi-cpu-fill me-2" style="color: #00d4ff;"></i>PCB缺陷检测
+            </h4>
+            <small class="text-white-50" style="font-size: 0.75rem;">Industrial AI Platform</small>
+        </div>
+        <ul class="nav flex-column mt-3">
+            <li class="nav-item">
+                <a class="nav-link" href="/">
+                    <i class="bi bi-speedometer2 me-2"></i>仪表板
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/detection">
+                    <i class="bi bi-search me-2"></i>检测管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/rtsp-monitor">
+                    <i class="bi bi-camera-video me-2"></i>数据大屏
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/history">
+                    <i class="bi bi-clock-history me-2"></i>检测历史
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/monitoring">
+                    <i class="bi bi-graph-up me-2"></i>系统监控
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/settings">
+                    <i class="bi bi-gear me-2"></i>系统设置
+                </a>
+            </li>
+        </ul>
+        <div class="position-absolute bottom-0 w-100 p-3">
+            <div class="d-flex align-items-center text-white-50" style="font-size: 0.95rem;">
+                <i class="bi bi-person-circle me-2"></i>
+                <span id="username">用户</span>
+            </div>
+            <button class="btn btn-sm btn-outline-light mt-2" onclick="logout()" style="font-size: 0.9rem; padding: 6px 12px;">
+                <i class="bi bi-box-arrow-right me-1"></i>退出
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <div class="main-content" style="height: 100vh; display: flex; flex-direction: column; overflow: hidden;">
+        <!-- 顶部导航 -->
+        <nav class="navbar navbar-expand-lg navbar-dark rounded-3 shadow-sm mb-3" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); flex-shrink: 0;">
+            <div class="container-fluid">
+                <span class="navbar-brand text-white">
+                    <i class="bi bi-gear me-2"></i>系统设置
+                </span>
+            </div>
+        </nav>
+
+        <!-- 设置标签页 -->
+        <div class="settings-card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; margin-bottom: 0;">
+            <ul class="nav nav-tabs mb-3" id="settingsTabs" style="flex-shrink: 0;">
+                <li class="nav-item">
+                    <a class="nav-link active" data-bs-toggle="tab" href="#detection-settings">
+                        <i class="bi bi-search me-2"></i>检测配置
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#system-settings">
+                        <i class="bi bi-gear me-2"></i>系统配置
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#user-settings">
+                        <i class="bi bi-person me-2"></i>用户管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="tab" href="#backup-settings">
+                        <i class="bi bi-cloud-arrow-down me-2"></i>备份恢复
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content" style="flex: 1; overflow-y: auto; overflow-x: hidden;">
+                <!-- 检测配置 -->
+                <div class="tab-pane fade show active" id="detection-settings">
+                    <h5 class="mb-4" style="color: rgba(255, 255, 255, 0.95); font-size: 1.15rem;">检测参数配置</h5>
+                    <form id="detectionConfigForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="setting-item">
+                                    <label class="form-label">模型文件路径</label>
+                                    <input type="text" class="form-control" id="modelPath" value="models/yolov5s_16848_f16.bmodel">
+                                    <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">YOLOv5模型文件的路径</small>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="form-label">默认置信度阈值</label>
+                                    <input type="range" class="form-range" id="defaultConfThresh" min="0.1" max="1.0" step="0.1" value="0.3" style="height: 8px;">
+                                    <div class="d-flex justify-content-between">
+                                        <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">0.1</small>
+                                        <small style="color: rgba(255, 255, 255, 0.7); font-size: 0.85rem;">当前: <span id="confThreshValue" style="color: rgba(255, 255, 255, 0.9); font-weight: 600;">0.3</span></small>
+                                        <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">1.0</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="form-label">默认NMS阈值</label>
+                                    <input type="range" class="form-range" id="defaultNmsThresh" min="0.1" max="1.0" step="0.1" value="0.6" style="height: 8px;">
+                                    <div class="d-flex justify-content-between">
+                                        <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">0.1</small>
+                                        <small style="color: rgba(255, 255, 255, 0.7); font-size: 0.85rem;">当前: <span id="nmsThreshValue" style="color: rgba(255, 255, 255, 0.9); font-weight: 600;">0.6</span></small>
+                                        <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">1.0</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="setting-item">
+                                    <label class="form-label">设备ID</label>
+                                    <select class="form-select" id="deviceId">
+                                        <option value="0">设备 0</option>
+                                        <option value="1">设备 1</option>
+                                        <option value="2">设备 2</option>
+                                    </select>
+                                    <small style="color: rgba(255, 255, 255, 0.6);">选择用于推理的设备</small>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="form-label">批处理大小</label>
+                                    <select class="form-select" id="batchSize">
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="4">4</option>
+                                        <option value="8">8</option>
+                                    </select>
+                                    <small style="color: rgba(255, 255, 255, 0.6);">单次处理的图片数量</small>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="form-label">缺陷类别</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="classNames" value="link,unknown" readonly>
+                                        <button class="btn btn-outline-secondary" type="button" onclick="editClassNames()">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    </div>
+                                    <small style="color: rgba(255, 255, 255, 0.6);">检测的缺陷类别名称</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-end mt-4">
+                            <button type="submit" class="btn btn-save">
+                                <i class="bi bi-check2-circle me-2"></i>保存检测配置
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 系统配置 -->
+                <div class="tab-pane fade" id="system-settings">
+                    <h5 class="mb-4" style="color: rgba(255, 255, 255, 0.95); font-size: 1.15rem;">系统参数配置</h5>
+                    <form id="systemConfigForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="setting-item">
+                                    <label class="form-label">服务器主机</label>
+                                    <input type="text" class="form-control" id="serverHost" value="192.168.1.131">
+                                    <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">Web服务器监听地址</small>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="form-label">服务器端口</label>
+                                    <input type="number" class="form-control" id="serverPort" value="8040" min="1024" max="65535">
+                                    <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">Web服务器监听端口</small>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="form-label">调试模式</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="debugMode">
+                                        <label class="form-check-label" for="debugMode">启用调试模式</label>
+                                    </div>
+                                    <small style="color: rgba(255, 255, 255, 0.6);">开启后显示详细错误信息</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="setting-item">
+                                    <label class="form-label">日志级别</label>
+                                    <select class="form-select" id="logLevel">
+                                        <option value="DEBUG">DEBUG</option>
+                                        <option value="INFO" selected>INFO</option>
+                                        <option value="WARNING">WARNING</option>
+                                        <option value="ERROR">ERROR</option>
+                                    </select>
+                                    <small style="color: rgba(255, 255, 255, 0.6);">系统日志记录级别</small>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="form-label">自动清理</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="autoCleanup" checked>
+                                        <label class="form-check-label" for="autoCleanup">自动清理临时文件</label>
+                                    </div>
+                                    <small style="color: rgba(255, 255, 255, 0.6);">定期清理过期的检测结果</small>
+                                </div>
+                                
+                                <div class="setting-item">
+                                    <label class="form-label">保留天数</label>
+                                    <input type="number" class="form-control" id="retentionDays" value="30" min="1" max="365">
+                                    <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">检测结果保留天数</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-end mt-4">
+                            <button type="submit" class="btn btn-save">
+                                <i class="bi bi-check2-circle me-2"></i>保存系统配置
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 用户管理 -->
+                <div class="tab-pane fade" id="user-settings">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0" style="color: rgba(255, 255, 255, 0.95); font-size: 1.15rem;">用户管理</h5>
+                        <button class="btn btn-primary" onclick="addUser()">
+                            <i class="bi bi-person-plus me-2"></i>添加用户
+                        </button>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="background: rgba(40, 40, 60, 0.6); color: rgba(255, 255, 255, 0.9); border: none;">用户名</th>
+                                    <th style="background: rgba(40, 40, 60, 0.6); color: rgba(255, 255, 255, 0.9); border: none;">姓名</th>
+                                    <th style="background: rgba(40, 40, 60, 0.6); color: rgba(255, 255, 255, 0.9); border: none;">角色</th>
+                                    <th style="background: rgba(40, 40, 60, 0.6); color: rgba(255, 255, 255, 0.9); border: none;">状态</th>
+                                    <th style="background: rgba(40, 40, 60, 0.6); color: rgba(255, 255, 255, 0.9); border: none;">最后登录</th>
+                                    <th style="background: rgba(40, 40, 60, 0.6); color: rgba(255, 255, 255, 0.9); border: none;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="color: rgba(255, 255, 255, 0.85);">admin</td>
+                                    <td style="color: rgba(255, 255, 255, 0.85);">系统管理员</td>
+                                    <td><span class="badge bg-danger">管理员</span></td>
+                                    <td><span class="badge bg-success">活跃</span></td>
+                                    <td style="color: rgba(255, 255, 255, 0.85);">2024-01-15 10:30</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editUser('admin')">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info me-1" onclick="resetPassword('admin')">
+                                            <i class="bi bi-key"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="color: rgba(255, 255, 255, 0.85);">operator</td>
+                                    <td style="color: rgba(255, 255, 255, 0.85);">操作员</td>
+                                    <td><span class="badge bg-primary">操作员</span></td>
+                                    <td><span class="badge bg-success">活跃</span></td>
+                                    <td style="color: rgba(255, 255, 255, 0.85);">2024-01-15 09:15</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editUser('operator')">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info me-1" onclick="resetPassword('operator')">
+                                            <i class="bi bi-key"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('operator')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 备份恢复 -->
+                <div class="tab-pane fade" id="backup-settings">
+                    <h5 class="mb-4" style="color: rgba(255, 255, 255, 0.95);">备份与恢复</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div style="background: rgba(40, 40, 60, 0.5); border-radius: 10px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                                <h6 style="color: rgba(255, 255, 255, 0.95);"><i class="bi bi-cloud-arrow-up me-2"></i>数据备份</h6>
+                                <p style="color: rgba(255, 255, 255, 0.7);">备份系统配置和检测历史数据</p>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">备份类型</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="backupConfig" checked>
+                                        <label class="form-check-label" for="backupConfig">系统配置</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="backupHistory" checked>
+                                        <label class="form-check-label" for="backupHistory">检测历史</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="backupUsers">
+                                        <label class="form-check-label" for="backupUsers">用户数据</label>
+                                    </div>
+                                </div>
+                                
+                                <button class="btn btn-primary w-100" onclick="createBackup()">
+                                    <i class="bi bi-cloud-arrow-up me-2"></i>创建备份
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div style="background: rgba(40, 40, 60, 0.5); border-radius: 10px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                                <h6 style="color: rgba(255, 255, 255, 0.95);"><i class="bi bi-cloud-arrow-down me-2"></i>数据恢复</h6>
+                                <p style="color: rgba(255, 255, 255, 0.7);">从备份文件恢复系统数据</p>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">备份文件</label>
+                                    <input type="file" class="form-control" id="restoreFile" accept=".json,.zip">
+                                </div>
+                                
+                                <button class="btn btn-outline-info w-100" onclick="restoreBackup()">
+                                    <i class="bi bi-cloud-arrow-down me-2"></i>恢复数据
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6 class="mb-3" style="color: rgba(255, 255, 255, 0.95);">备份历史</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th style="background: rgba(40, 40, 60, 0.6); color: rgba(255, 255, 255, 0.9); border: none;">时间</th>
+                                        <th style="background: rgba(40, 40, 60, 0.6); color: rgba(255, 255, 255, 0.9); border: none;">类型</th>
+                                        <th style="background: rgba(40, 40, 60, 0.6); color: rgba(255, 255, 255, 0.9); border: none;">大小</th>
+                                        <th style="background: rgba(40, 40, 60, 0.6); color: rgba(255, 255, 255, 0.9); border: none;">状态</th>
+                                        <th style="background: rgba(40, 40, 60, 0.6); color: rgba(255, 255, 255, 0.9); border: none;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="color: rgba(255, 255, 255, 0.85);">2024-01-15 10:00</td>
+                                        <td style="color: rgba(255, 255, 255, 0.85);">完整备份</td>
+                                        <td style="color: rgba(255, 255, 255, 0.85);">12.5 MB</td>
+                                        <td><span class="badge bg-success">成功</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary me-1" onclick="downloadBackup('backup_20240115.zip')">
+                                                <i class="bi bi-download"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteBackup('backup_20240115.zip')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="color: rgba(255, 255, 255, 0.85);">2024-01-14 10:00</td>
+                                        <td style="color: rgba(255, 255, 255, 0.85);">配置备份</td>
+                                        <td style="color: rgba(255, 255, 255, 0.85);">2.1 MB</td>
+                                        <td><span class="badge bg-success">成功</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary me-1" onclick="downloadBackup('config_20240114.zip')">
+                                                <i class="bi bi-download"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteBackup('config_20240114.zip')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/jquery-3.6.0.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+            bindEvents();
+        });
+
+        // 绑定事件
+        function bindEvents() {
+            // 滑块值更新
+            document.getElementById('defaultConfThresh').addEventListener('input', function() {
+                document.getElementById('confThreshValue').textContent = this.value;
+            });
+            
+            document.getElementById('defaultNmsThresh').addEventListener('input', function() {
+                document.getElementById('nmsThreshValue').textContent = this.value;
+            });
+        }
+
+        // 加载设置
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/system-config');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 填充表单数据
+                    fillFormData(data.config);
+                }
+            } catch (error) {
+                console.error('加载设置失败:', error);
+            }
+        }
+
+        // 填充表单数据
+        function fillFormData(config) {
+            // 检测配置
+            if (config.detection) {
+                document.getElementById('modelPath').value = config.detection.model_path || '';
+                document.getElementById('defaultConfThresh').value = config.detection.conf_thresh || 0.3;
+                document.getElementById('defaultNmsThresh').value = config.detection.nms_thresh || 0.6;
+                document.getElementById('deviceId').value = config.detection.dev_id || '0';
+                document.getElementById('classNames').value = config.detection.class_names?.join(',') || '';
+                
+                // 更新滑块显示
+                document.getElementById('confThreshValue').textContent = config.detection.conf_thresh || 0.3;
+                document.getElementById('nmsThreshValue').textContent = config.detection.nms_thresh || 0.6;
+            }
+            
+            // 系统配置
+            if (config.system) {
+                document.getElementById('serverHost').value = config.system.host || '';
+                document.getElementById('serverPort').value = config.system.port || 8040;
+                document.getElementById('debugMode').checked = config.system.debug || false;
+            }
+        }
+
+        // 保存检测配置
+        document.getElementById('detectionConfigForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const config = {
+                model_path: document.getElementById('modelPath').value,
+                conf_thresh: parseFloat(document.getElementById('defaultConfThresh').value),
+                nms_thresh: parseFloat(document.getElementById('defaultNmsThresh').value),
+                dev_id: parseInt(document.getElementById('deviceId').value),
+                class_names: document.getElementById('classNames').value.split(',').map(s => s.trim())
+            };
+            
+            saveConfig('detection', config);
+        });
+
+        // 保存系统配置
+        document.getElementById('systemConfigForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const config = {
+                host: document.getElementById('serverHost').value,
+                port: parseInt(document.getElementById('serverPort').value),
+                debug: document.getElementById('debugMode').checked,
+                log_level: document.getElementById('logLevel').value,
+                auto_cleanup: document.getElementById('autoCleanup').checked,
+                retention_days: parseInt(document.getElementById('retentionDays').value)
+            };
+            
+            saveConfig('system', config);
+        });
+
+        // 保存配置
+        async function saveConfig(type, config) {
+            try {
+                // 这里应该调用API保存配置
+                console.log(`保存${type}配置:`, config);
+                
+                // 模拟保存成功
+                showAlert('success', '配置保存成功！');
+            } catch (error) {
+                showAlert('error', '配置保存失败: ' + error.message);
+            }
+        }
+
+        // 编辑类别名称
+        function editClassNames() {
+            const current = document.getElementById('classNames').value;
+            const newValue = prompt('请输入类别名称（用逗号分隔）:', current);
+            if (newValue !== null) {
+                document.getElementById('classNames').value = newValue;
+            }
+        }
+
+        // 用户管理功能
+        function addUser() {
+            alert('添加用户功能开发中...');
+        }
+
+        function editUser(username) {
+            alert(`编辑用户 ${username} 功能开发中...`);
+        }
+
+        function resetPassword(username) {
+            if (confirm(`确定要重置用户 ${username} 的密码吗？`)) {
+                alert('密码重置功能开发中...');
+            }
+        }
+
+        function deleteUser(username) {
+            if (confirm(`确定要删除用户 ${username} 吗？此操作不可恢复！`)) {
+                alert('删除用户功能开发中...');
+            }
+        }
+
+        // 备份恢复功能
+        function createBackup() {
+            const types = [];
+            if (document.getElementById('backupConfig').checked) types.push('配置');
+            if (document.getElementById('backupHistory').checked) types.push('历史');
+            if (document.getElementById('backupUsers').checked) types.push('用户');
+            
+            if (types.length === 0) {
+                showAlert('warning', '请至少选择一种备份类型');
+                return;
+            }
+            
+            alert(`正在创建备份: ${types.join(', ')}`);
+        }
+
+        function restoreBackup() {
+            const file = document.getElementById('restoreFile').files[0];
+            if (!file) {
+                showAlert('warning', '请选择备份文件');
+                return;
+            }
+            
+            if (confirm('确定要从备份文件恢复数据吗？这将覆盖当前数据！')) {
+                alert('恢复功能开发中...');
+            }
+        }
+
+        function downloadBackup(filename) {
+            alert(`下载备份文件: ${filename}`);
+        }
+
+        function deleteBackup(filename) {
+            if (confirm(`确定要删除备份文件 ${filename} 吗？`)) {
+                alert('删除备份功能开发中...');
+            }
+        }
+
+        // 显示提示信息
+        function showAlert(type, message) {
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'warning' ? 'alert-warning' : 'alert-danger';
+            
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            const container = document.querySelector('.main-content');
+            container.insertAdjacentHTML('afterbegin', alertHtml);
+            
+            // 3秒后自动消失
+            setTimeout(() => {
+                const alert = container.querySelector('.alert');
+                if (alert) {
+                    alert.remove();
+                }
+            }, 3000);
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('退出失败:', error);
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,15 @@
+Flask==2.3.3
+Flask-CORS==4.0.0
+Werkzeug==2.3.7
+opencv-python==4.8.1.78
+numpy==1.24.3
+Pillow==10.0.1
+requests==2.31.0
+psutil==5.9.5
+
+# Sophon SAIL 硬件加速接口 (需要根据实际环境安装)
+# sophon-sail==3.5.0  # 取消注释并安装对应版本
+
+# 可选依赖
+# matplotlib==3.7.2  # 用于结果可视化
+# scikit-image==0.21.0  # 用于图像处理 

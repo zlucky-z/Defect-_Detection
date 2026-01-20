@@ -1,0 +1,16 @@
+2026/01/20 09:19:45 INF MediaMTX v1.8.4
+2026/01/20 09:19:45 INF configuration loaded from /data/pcb/det/pcb/mediamtx/mediamtx.yml
+2026/01/20 09:19:45 INF [RTSP] listener opened on :8554 (TCP), :8000 (UDP/RTP), :8001 (UDP/RTCP)
+2026/01/20 09:19:45 INF [RTMP] listener opened on :1937
+2026/01/20 09:19:45 INF [HLS] listener opened on :8888
+2026/01/20 09:19:45 INF [WebRTC] listener opened on :8889 (HTTP), :8189 (ICE/UDP)
+2026/01/20 09:19:45 INF [SRT] listener opened on :8890 (UDP)
+2026/01/20 09:19:54 INF [RTSP] [conn 192.168.1.214:34188] opened
+2026/01/20 09:19:54 INF [RTSP] [session 87c19e9e] created by 192.168.1.214:34188
+2026/01/20 09:19:54 INF [RTSP] [session 87c19e9e] is publishing to path 'detection', 1 track (H264)
+2026/01/20 09:19:57 INF [WebRTC] [session ad09d68e] created by [::1]:60804
+2026/01/20 09:19:57 INF [WebRTC] [session ad09d68e] peer connection established, local candidate: host/udp/192.168.1.214/8189, remote candidate: prflx/udp/192.168.1.175/61850
+2026/01/20 09:19:57 INF [WebRTC] [session ad09d68e] is reading from path 'detection', 1 track (H264)
+2026/01/20 09:20:34 INF [RTSP] [conn 192.168.1.214:34188] closed: EOF
+2026/01/20 09:20:34 INF [RTSP] [session 87c19e9e] destroyed: not in use
+2026/01/20 09:20:34 INF [WebRTC] [session ad09d68e] closed: terminated

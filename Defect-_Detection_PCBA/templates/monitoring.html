@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCB缺陷检测系统 - 系统监控</title>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1128 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        html, body {
+            height: 100vh;
+            max-height: 100vh;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, #0a0d1f, #151932, #0a0d1f);
+            min-height: 100vh;
+            width: 250px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.8);
+            border-right: 1px solid rgba(0, 162, 255, 0.2);
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 10px 18px;
+            border-radius: 6px;
+            margin: 3px 12px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: linear-gradient(90deg, rgba(0, 162, 255, 0.2), rgba(0, 162, 255, 0.05));
+            color: #00d4ff;
+            border-left: 3px solid #00a2ff;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 15px;
+            max-width: calc(100vw - 250px);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .monitor-card {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .metric-card {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            backdrop-filter: blur(10px);
+            margin-bottom: 0;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 162, 255, 0.3);
+        }
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+        .form-control, .form-select {
+            background: rgba(40, 40, 60, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            padding: 8px 12px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .metric-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+        .status-online {
+            color: #28a745;
+        }
+        .status-warning {
+            color: #ffc107;
+        }
+        .status-error {
+            color: #dc3545;
+        }
+        .gauge {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .log-entry {
+            padding: 8px 12px;
+            border-left: 3px solid #dee2e6;
+            margin-bottom: 6px;
+            background: rgba(40, 40, 60, 0.6);
+            color: rgba(255, 255, 255, 0.85);
+            border-radius: 0 4px 4px 0;
+            font-size: 0.85rem;
+        }
+        .log-entry.info {
+            border-color: #0dcaf0;
+        }
+        .log-entry.warning {
+            border-color: #ffc107;
+        }
+        .log-entry.error {
+            border-color: #dc3545;
+        }
+        .chart-container {
+            position: relative;
+            overflow: hidden;
+        }
+        .table tbody tr {
+            background: rgba(30, 30, 50, 0.4);
+        }
+        .table tbody tr:hover {
+            background: rgba(40, 40, 60, 0.6);
+        }
+        .table tbody td {
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <nav class="sidebar">
+        <div class="p-3 text-center border-bottom" style="border-color: rgba(0, 162, 255, 0.2) !important;">
+            <h4 class="text-white mb-0" style="font-size: 1.2rem;">
+                <i class="bi bi-cpu-fill me-2" style="color: #00d4ff;"></i>PCB缺陷检测
+            </h4>
+            <small class="text-white-50" style="font-size: 0.75rem;">Industrial AI Platform</small>
+        </div>
+        <ul class="nav flex-column mt-3">
+            <li class="nav-item">
+                <a class="nav-link" href="/">
+                    <i class="bi bi-speedometer2 me-2"></i>仪表板
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/detection">
+                    <i class="bi bi-search me-2"></i>检测管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/rtsp-monitor">
+                    <i class="bi bi-camera-video me-2"></i>数据大屏
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/history">
+                    <i class="bi bi-clock-history me-2"></i>检测历史
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/monitoring">
+                    <i class="bi bi-graph-up me-2"></i>系统监控
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings">
+                    <i class="bi bi-gear me-2"></i>系统设置
+                </a>
+            </li>
+        </ul>
+        <div class="position-absolute bottom-0 w-100 p-3">
+            <div class="d-flex align-items-center text-white-50" style="font-size: 0.95rem;">
+                <i class="bi bi-person-circle me-2"></i>
+                <span id="username">用户</span>
+            </div>
+            <button class="btn btn-sm btn-outline-light mt-2" onclick="logout()" style="font-size: 0.9rem; padding: 6px 12px;">
+                <i class="bi bi-box-arrow-right me-1"></i>退出
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        <!-- 顶部导航 -->
+        <nav class="navbar navbar-expand-lg navbar-dark rounded-3 shadow-sm mb-2" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); flex-shrink: 0; padding: 8px 12px;">
+            <div class="container-fluid">
+                <span class="navbar-brand text-white" style="font-size: 1.1rem; margin-bottom: 0;">
+                    <i class="bi bi-graph-up me-2"></i>系统监控
+                </span>
+                <div class="navbar-nav ms-auto">
+                    <span class="nav-link" style="font-size: 0.9rem; padding: 4px 8px;">
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        最后更新: <span id="lastUpdate">--</span>
+                    </span>
+                </div>
+            </div>
+        </nav>
+
+        <div style="flex: 1; overflow-y: auto; overflow-x: hidden;">
+            <!-- 系统状态概览 -->
+            <div class="row mb-3">
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="metric-card" style="height: 110px;">
+                        <div class="metric-value status-online" id="systemStatus" style="font-size: 1.8rem;">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </div>
+                        <div class="metric-label" style="font-size: 0.9rem;">系统状态</div>
+                        <small class="text-success" style="font-size: 0.8rem;">正常运行</small>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="metric-card" style="height: 110px;">
+                        <div class="metric-value text-primary" id="cpuUsage" style="font-size: 1.8rem;">--</div>
+                        <div class="metric-label" style="font-size: 0.9rem;">CPU使用率</div>
+                        <div class="progress mt-2" style="height: 4px;">
+                            <div class="progress-bar bg-primary" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="metric-card" style="height: 110px;">
+                        <div class="metric-value text-info" id="memoryUsage" style="font-size: 1.8rem;">--</div>
+                        <div class="metric-label" style="font-size: 0.9rem;">内存使用率</div>
+                        <div class="progress mt-2" style="height: 4px;">
+                            <div class="progress-bar bg-info" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6 mb-3">
+                    <div class="metric-card" style="height: 110px;">
+                        <div class="metric-value text-warning" id="temperatureValue" style="font-size: 1.8rem;">--°C</div>
+                        <div class="metric-label" style="font-size: 0.9rem;">设备温度</div>
+                        <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.75rem;">正常范围: 20-60°C</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 性能监控和服务状态 -->
+            <div class="row mb-3">
+                <div class="col-lg-8 mb-3">
+                    <div class="monitor-card" style="height: 280px;">
+                        <h5 class="mb-3" style="color: rgba(255, 255, 255, 0.95); font-size: 1rem;">
+                            <i class="bi bi-activity me-2"></i>系统性能趋势
+                        </h5>
+                        <div class="chart-container" style="height: 230px;">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 mb-3">
+                    <div class="monitor-card" style="height: 280px;">
+                        <h5 class="mb-3" style="color: rgba(255, 255, 255, 0.95); font-size: 1rem;">
+                            <i class="bi bi-gear-fill me-2"></i>服务状态
+                        </h5>
+                        <div class="table-responsive" style="height: 230px; overflow-y: auto;">
+                            <table class="table table-sm" style="font-size: 0.85rem; margin-bottom: 0;">
+                                <thead style="position: sticky; top: 0; z-index: 10;">
+                                    <tr>
+                                        <th style="background: rgba(40, 40, 60, 0.95); color: rgba(255, 255, 255, 0.9); padding: 8px; border: none;">服务</th>
+                                        <th style="background: rgba(40, 40, 60, 0.95); color: rgba(255, 255, 255, 0.9); padding: 8px; border: none;">状态</th>
+                                        <th style="background: rgba(40, 40, 60, 0.95); color: rgba(255, 255, 255, 0.9); padding: 8px; border: none;">运行时间</th>
+                                    </tr>
+                                </thead>
+                                <tbody style="color: rgba(255, 255, 255, 0.85);">
+                                    <tr style="border-color: rgba(255, 255, 255, 0.1);">
+                                        <td colspan="3" style="padding: 8px; text-align: center; color: rgba(255, 255, 255, 0.5);">加载中...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 网络监控、存储监控和日志 -->
+            <div class="row mb-3">
+                <div class="col-lg-4 mb-3">
+                    <div class="monitor-card" style="height: 280px;">
+                        <h5 class="mb-3" style="color: rgba(255, 255, 255, 0.95); font-size: 1rem;">
+                            <i class="bi bi-wifi me-2"></i>网络监控
+                        </h5>
+                        <div class="row mb-3">
+                            <div class="col-6 text-center">
+                                <div class="metric-value text-success" id="networkIn" style="font-size: 1.5rem;">--</div>
+                                <div class="metric-label" style="font-size: 0.8rem;">下载速度</div>
+                            </div>
+                            <div class="col-6 text-center">
+                                <div class="metric-value text-info" id="networkOut" style="font-size: 1.5rem;">--</div>
+                                <div class="metric-label" style="font-size: 0.8rem;">上传速度</div>
+                            </div>
+                        </div>
+                        <div style="height: 150px; max-height: 150px; overflow: hidden;">
+                            <canvas id="networkChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 mb-3">
+                    <div class="monitor-card" style="height: 280px;">
+                        <h5 class="mb-3" style="color: rgba(255, 255, 255, 0.95); font-size: 1rem;">
+                            <i class="bi bi-hdd me-2"></i>存储监控
+                        </h5>
+                        <div id="storageContainer" style="height: 230px; overflow-y: auto;">
+                            <div class="text-center" style="padding: 60px 0; color: rgba(255, 255, 255, 0.5);">
+                                <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
+                                <p class="mt-2" style="font-size: 0.9rem;">加载中...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 mb-3">
+                    <div class="monitor-card" style="height: 280px;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0" style="color: rgba(255, 255, 255, 0.95); font-size: 1rem;">
+                                <i class="bi bi-journal-text me-2"></i>系统日志
+                            </h5>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="clearLogs()" style="padding: 3px 10px; font-size: 0.75rem;">
+                                <i class="bi bi-trash me-1"></i>清空
+                            </button>
+                        </div>
+                        <div id="logContainer" style="height: 230px; overflow-y: auto;">
+                            <!-- 动态生成日志 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/jquery-3.6.0.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/chart.min.js"></script>
+    <script>
+        let performanceChart, networkChart;
+        let logEntries = [];
+        let updateInterval = null;
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            startMonitoring();
+        });
+
+        // 初始化图表
+        function initCharts() {
+            // 性能趋势图
+            const ctx1 = document.getElementById('performanceChart').getContext('2d');
+            performanceChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'CPU使用率',
+                        data: [],
+                        borderColor: '#00a2ff',
+                        backgroundColor: 'rgba(0, 162, 255, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: '内存使用率',
+                        data: [],
+                        borderColor: '#00ff88',
+                        backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    aspectRatio: 2,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: 'rgba(255, 255, 255, 0.9)' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+
+            // 网络监控图
+            const ctx2 = document.getElementById('networkChart').getContext('2d');
+            networkChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '下载',
+                        data: [],
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4,
+                        borderWidth: 2
+                    }, {
+                        label: '上传',
+                        data: [],
+                        borderColor: '#17a2b8',
+                        backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                        tension: 0.4,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { 
+                                color: 'rgba(255, 255, 255, 0.9)',
+                                font: { size: 11 },
+                                padding: 8
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { 
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                font: { size: 10 }
+                            },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                            ticks: { 
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                font: { size: 10 },
+                                maxRotation: 0
+                            },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新日志显示
+        function updateLogDisplay() {
+            const container = document.getElementById('logContainer');
+            container.innerHTML = '';
+            
+            logEntries.forEach(entry => {
+                const div = document.createElement('div');
+                div.className = `log-entry ${entry.type}`;
+                div.innerHTML = `
+                    <div class="d-flex justify-content-between">
+                        <small style="color: rgba(255, 255, 255, 0.5);">${entry.timestamp}</small>
+                        <span class="badge bg-${entry.type === 'error' ? 'danger' : entry.type === 'warning' ? 'warning' : 'primary'}">${entry.type.toUpperCase()}</span>
+                    </div>
+                    <div class="mt-1" style="color: rgba(255, 255, 255, 0.85);">${entry.message}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // 开始监控
+        function startMonitoring() {
+            // 立即加载一次数据
+            updateSystemStatus();
+            updateServices();
+            updateLogs();
+            updateNetwork();
+            updateStorage();
+            updateTemperature();
+            updateLastUpdateTime();
+            
+            // 定时更新 - 每3秒更新一次
+            updateInterval = setInterval(() => {
+                updateSystemStatus();
+                updateNetwork();
+            }, 3000);
+            
+            // 每10秒更新一次服务状态和日志
+            setInterval(() => {
+                updateServices();
+                updateLogs();
+            }, 10000);
+            
+            // 每30秒更新一次存储和温度
+            setInterval(() => {
+                updateStorage();
+                updateTemperature();
+            }, 30000);
+            
+            // 每分钟更新一次时间
+            setInterval(updateLastUpdateTime, 60000);
+        }
+
+        // 更新系统状态(CPU、内存、磁盘)
+        async function updateSystemStatus() {
+            try {
+                const response = await fetch('/api/monitoring/system');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const { cpu, memory, disk, status } = data;
+                    
+                    // 更新系统状态图标
+                    const statusIcon = document.getElementById('systemStatus');
+                    if (status === 'normal') {
+                        statusIcon.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+                        statusIcon.className = 'metric-value status-online';
+                        statusIcon.nextElementSibling.nextElementSibling.textContent = '正常运行';
+                        statusIcon.nextElementSibling.nextElementSibling.className = 'text-success';
+                    } else if (status === 'warning') {
+                        statusIcon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+                        statusIcon.className = 'metric-value status-warning';
+                        statusIcon.nextElementSibling.nextElementSibling.textContent = '告警';
+                        statusIcon.nextElementSibling.nextElementSibling.className = 'text-warning';
+                    } else {
+                        statusIcon.innerHTML = '<i class="bi bi-x-circle-fill"></i>';
+                        statusIcon.className = 'metric-value status-error';
+                        statusIcon.nextElementSibling.nextElementSibling.textContent = '异常';
+                        statusIcon.nextElementSibling.nextElementSibling.className = 'text-danger';
+                    }
+                    
+                    // 更新CPU使用率
+                    document.getElementById('cpuUsage').textContent = Math.round(cpu) + '%';
+                    document.querySelector('.progress-bar.bg-primary').style.width = cpu + '%';
+                    
+                    // 更新内存使用率
+                    document.getElementById('memoryUsage').textContent = Math.round(memory) + '%';
+                    document.querySelector('.progress-bar.bg-info').style.width = memory + '%';
+                    
+                    // 更新磁盘使用率
+                    document.getElementById('diskUsage').textContent = Math.round(disk) + '%';
+                    document.querySelector('.progress-bar.bg-success').style.width = disk + '%';
+                    
+                    // 更新图表
+                    const now = new Date().toLocaleTimeString();
+                    if (performanceChart.data.labels.length >= 20) {
+                        performanceChart.data.labels.shift();
+                        performanceChart.data.datasets[0].data.shift();
+                        performanceChart.data.datasets[1].data.shift();
+                    }
+                    
+                    performanceChart.data.labels.push(now);
+                    performanceChart.data.datasets[0].data.push(cpu);
+                    performanceChart.data.datasets[1].data.push(memory);
+                    performanceChart.update('none'); // 使用 'none' 模式以提高性能
+                }
+            } catch (error) {
+                console.error('获取系统状态失败:', error);
+            }
+        }
+
+        // 更新服务状态
+        async function updateServices() {
+            try {
+                const response = await fetch('/api/monitoring/services');
+                const data = await response.json();
+                
+                if (data.success && data.services) {
+                    const tbody = document.querySelector('.table tbody');
+                    tbody.innerHTML = '';
+                    
+                    if (data.services.length === 0) {
+                        tbody.innerHTML = `
+                            <tr style="border-color: rgba(255, 255, 255, 0.1);">
+                                <td colspan="3" style="padding: 15px; text-align: center; color: rgba(255, 255, 255, 0.5);">暂无服务数据</td>
+                            </tr>
+                        `;
+                        return;
+                    }
+                    
+                    data.services.forEach(service => {
+                        const row = document.createElement('tr');
+                        row.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                        
+                        const statusBadge = service.status === 'running' ? 
+                            '<span class="badge bg-success" style="font-size: 0.75rem; padding: 4px 8px;">运行中</span>' :
+                            service.status === 'warning' ?
+                            '<span class="badge bg-warning" style="font-size: 0.75rem; padding: 4px 8px;">警告</span>' :
+                            '<span class="badge bg-danger" style="font-size: 0.75rem; padding: 4px 8px;">已停止</span>';
+                        
+                        row.innerHTML = `
+                            <td style="padding: 8px; color: rgba(255, 255, 255, 0.85); border: none;">${service.name}</td>
+                            <td style="padding: 8px; border: none;">${statusBadge}</td>
+                            <td style="padding: 8px; color: rgba(255, 255, 255, 0.7); border: none;">${service.uptime || '--'}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+            } catch (error) {
+                console.error('获取服务状态失败:', error);
+                const tbody = document.querySelector('.table tbody');
+                tbody.innerHTML = `
+                    <tr style="border-color: rgba(255, 255, 255, 0.1);">
+                        <td colspan="3" style="padding: 15px; text-align: center; color: rgba(255, 255, 255, 0.5);">
+                            <i class="bi bi-exclamation-triangle me-2"></i>加载失败
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // 更新系统日志
+        async function updateLogs() {
+            try {
+                const response = await fetch('/api/monitoring/logs?limit=20');
+                const data = await response.json();
+                
+                if (data.success && data.logs) {
+                    logEntries = data.logs;
+                    updateLogDisplay();
+                }
+            } catch (error) {
+                console.error('获取系统日志失败:', error);
+            }
+        }
+
+        // 更新网络监控
+        async function updateNetwork() {
+            try {
+                const response = await fetch('/api/monitoring/network');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const { download_speed, upload_speed } = data;
+                    
+                    // 更新网络速度显示
+                    document.getElementById('networkIn').textContent = download_speed.toFixed(1) + ' MB/s';
+                    document.getElementById('networkOut').textContent = upload_speed.toFixed(1) + ' MB/s';
+                    
+                    // 更新图表
+                    const now = new Date().toLocaleTimeString();
+                    if (networkChart.data.labels.length >= 20) {
+                        networkChart.data.labels.shift();
+                        networkChart.data.datasets[0].data.shift();
+                        networkChart.data.datasets[1].data.shift();
+                    }
+                    
+                    networkChart.data.labels.push(now);
+                    networkChart.data.datasets[0].data.push(download_speed);
+                    networkChart.data.datasets[1].data.push(upload_speed);
+                    networkChart.update('none');
+                }
+            } catch (error) {
+                console.error('获取网络监控失败:', error);
+            }
+        }
+
+        // 更新存储监控
+        async function updateStorage() {
+            try {
+                const response = await fetch('/api/monitoring/storage');
+                const data = await response.json();
+                
+                if (data.success && data.disks) {
+                    const container = document.getElementById('storageContainer');
+                    container.innerHTML = '';
+                    
+                    // 遍历实际的磁盘数据
+                    const diskArray = Array.isArray(data.disks) ? data.disks : Object.entries(data.disks).map(([name, info]) => ({
+                        name: name,
+                        ...info
+                    }));
+                    
+                    if (diskArray.length === 0) {
+                        container.innerHTML = `
+                            <div class="text-center" style="padding: 60px 0; color: rgba(255, 255, 255, 0.5);">
+                                <i class="bi bi-info-circle" style="font-size: 2rem;"></i>
+                                <p class="mt-2" style="font-size: 0.9rem;">暂无存储数据</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    diskArray.forEach(disk => {
+                        const percent = disk.percent || disk.usage_percent || 0;
+                        const mountpoint = disk.mountpoint || disk.name || '/';
+                        const used = disk.used || '--';
+                        const total = disk.total || '--';
+                        
+                        // 根据使用率设置颜色
+                        let colorClass = 'bg-success';
+                        if (percent >= 80) {
+                            colorClass = 'bg-danger';
+                        } else if (percent >= 60) {
+                            colorClass = 'bg-warning';
+                        }
+                        
+                        const diskHtml = `
+                            <div class="mb-3 pb-2" style="border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong style="color: rgba(255, 255, 255, 0.9); font-size: 0.9rem;">
+                                        <i class="bi bi-hdd me-1"></i>${mountpoint}
+                                    </strong>
+                                    <span style="color: rgba(255, 255, 255, 0.7); font-size: 0.85rem; font-weight: 600;">${Math.round(percent)}%</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar ${colorClass}" style="width: ${percent}%"></div>
+                                </div>
+                                <div class="mt-1 d-flex justify-content-between">
+                                    <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.75rem;">已用: ${used}</small>
+                                    <small style="color: rgba(255, 255, 255, 0.6); font-size: 0.75rem;">总计: ${total}</small>
+                                </div>
+                            </div>
+                        `;
+                        container.innerHTML += diskHtml;
+                    });
+                }
+            } catch (error) {
+                console.error('获取存储监控失败:', error);
+                const container = document.getElementById('storageContainer');
+                container.innerHTML = `
+                    <div class="text-center" style="padding: 60px 0; color: rgba(255, 255, 255, 0.5);">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i>
+                        <p class="mt-2" style="font-size: 0.9rem;">加载失败</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 更新设备温度
+        async function updateTemperature() {
+            try {
+                const response = await fetch('/api/monitoring/temperature');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const temp = data.temperature || 0;
+                    const tempElement = document.getElementById('temperatureValue');
+                    
+                    if (tempElement) {
+                        tempElement.textContent = temp + '°C';
+                        
+                        // 根据温度设置颜色
+                        tempElement.className = 'metric-value';
+                        tempElement.style.fontSize = '1.8rem';
+                        if (temp < 50) {
+                            tempElement.classList.add('text-success');
+                        } else if (temp < 70) {
+                            tempElement.classList.add('text-warning');
+                        } else {
+                            tempElement.classList.add('text-danger');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('获取设备温度失败:', error);
+            }
+        }
+
+        // 更新最后更新时间
+        function updateLastUpdateTime() {
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString();
+        }
+
+        // 清空日志
+        async function clearLogs() {
+            if (confirm('确定要清空所有日志吗？')) {
+                try {
+                    const response = await fetch('/api/monitoring/logs/clear', {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        logEntries = [];
+                        updateLogDisplay();
+                    } else {
+                        alert('清空日志失败: ' + data.message);
+                    }
+                } catch (error) {
+                    console.error('清空日志失败:', error);
+                    alert('清空日志失败');
+                }
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('退出失败:', error);
+            }
+        }
+
+        // 页面卸载时清理定时器
+        window.addEventListener('beforeunload', function() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+</html> 

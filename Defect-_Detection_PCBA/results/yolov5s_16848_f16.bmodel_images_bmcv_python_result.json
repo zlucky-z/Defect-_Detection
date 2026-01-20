@@ -1,0 +1,41 @@
+[
+    {
+        "image_name": "test.png",
+        "bboxes": []
+    },
+    {
+        "image_name": "test1.jpg",
+        "bboxes": [
+            {
+                "bbox": [
+                    726.0,
+                    1682.0,
+                    88.0,
+                    146.0
+                ],
+                "category_id": 1,
+                "score": 0.31067
+            },
+            {
+                "bbox": [
+                    510.0,
+                    1544.0,
+                    61.0,
+                    168.0
+                ],
+                "category_id": 0,
+                "score": 0.30533
+            },
+            {
+                "bbox": [
+                    1095.0,
+                    1811.0,
+                    97.0,
+                    167.0
+                ],
+                "category_id": 1,
+                "score": 0.30001
+            }
+        ]
+    }
+]

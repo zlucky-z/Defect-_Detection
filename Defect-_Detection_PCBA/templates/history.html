@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCB缺陷检测系统 - 检测历史</title>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-icons.css" rel="stylesheet">
+    <link href="/static/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1128 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, #0a0d1f, #151932, #0a0d1f);
+            min-height: 100vh;
+            width: 250px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.8);
+            border-right: 1px solid rgba(0, 162, 255, 0.2);
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 10px 18px;
+            border-radius: 6px;
+            margin: 3px 12px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: linear-gradient(90deg, rgba(0, 162, 255, 0.2), rgba(0, 162, 255, 0.05));
+            color: #00d4ff;
+            border-left: 3px solid #00a2ff;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        .history-card {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border-radius: 15px;
+            padding: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+        .form-control, .form-select {
+            background: rgba(40, 40, 60, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            padding: 8px 12px;
+        }
+        .form-control:focus, .form-select:focus {
+            background: rgba(40, 40, 60, 0.8);
+            border-color: #00a2ff;
+            color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 0.2rem rgba(0, 162, 255, 0.25);
+        }
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .status-badge {
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .filter-card {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+        .table th {
+            background: rgba(40, 40, 60, 0.6);
+            color: rgba(255, 255, 255, 0.9);
+            border: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .table td {
+            color: rgba(255, 255, 255, 0.85);
+            border-color: rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+            background: transparent;
+        }
+        .table tbody tr {
+            border-color: rgba(255, 255, 255, 0.1);
+            background: rgba(30, 30, 50, 0.4);
+        }
+        .table tbody tr:hover {
+            background: rgba(40, 40, 60, 0.6);
+        }
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_paginate,
+        .dataTables_wrapper .dataTables_info {
+            display: none !important;
+        }
+        .table-responsive::-webkit-scrollbar {
+            width: 8px;
+        }
+        .table-responsive::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .defect-image {
+            width: 100%;
+            max-width: 200px;
+            height: auto;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .defect-image:hover {
+            transform: scale(1.05);
+        }
+        .defect-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin: 2px;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .image-card {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+        .image-card:hover {
+            box-shadow: 0 8px 20px rgba(0, 162, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        .modal-xl {
+            max-width: 90%;
+        }
+        .image-viewer {
+            max-width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+        }
+        .modal-content {
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .modal-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .modal-body {
+            color: rgba(255, 255, 255, 0.85);
+        }
+        .modal-title {
+            color: rgba(255, 255, 255, 0.95);
+        }
+        .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <nav class="sidebar">
+        <div class="p-3 text-center border-bottom" style="border-color: rgba(0, 162, 255, 0.2) !important;">
+            <h4 class="text-white mb-0" style="font-size: 1.2rem;">
+                <i class="bi bi-cpu-fill me-2" style="color: #00d4ff;"></i>PCB缺陷检测
+            </h4>
+            <small class="text-white-50" style="font-size: 0.75rem;">Industrial AI Platform</small>
+        </div>
+        <ul class="nav flex-column mt-3">
+            <li class="nav-item">
+                <a class="nav-link" href="/">
+                    <i class="bi bi-speedometer2 me-2"></i>仪表板
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/detection">
+                    <i class="bi bi-search me-2"></i>检测管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/rtsp-monitor">
+                    <i class="bi bi-camera-video me-2"></i>数据大屏
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/history">
+                    <i class="bi bi-clock-history me-2"></i>检测历史
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/monitoring">
+                    <i class="bi bi-graph-up me-2"></i>系统监控
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings">
+                    <i class="bi bi-gear me-2"></i>系统设置
+                </a>
+            </li>
+        </ul>
+        <div class="position-absolute bottom-0 w-100 p-3">
+            <div class="d-flex align-items-center text-white-50" style="font-size: 0.95rem;">
+                <i class="bi bi-person-circle me-2"></i>
+                <span id="username">用户</span>
+            </div>
+            <button class="btn btn-sm btn-outline-light mt-2" onclick="logout()" style="font-size: 0.9rem; padding: 6px 12px;">
+                <i class="bi bi-box-arrow-right me-1"></i>退出
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <div class="main-content" style="height: 100vh; display: flex; flex-direction: column; overflow: hidden;">
+        <!-- 顶部导航 -->
+        <nav class="navbar navbar-expand-lg navbar-dark rounded-3 shadow-sm mb-3" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); flex-shrink: 0;">
+            <div class="container-fluid">
+                <span class="navbar-brand text-white">
+                    <i class="bi bi-clock-history me-2"></i>检测历史
+                </span>
+                <div class="navbar-nav ms-auto">
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="exportHistory()">
+                        <i class="bi bi-download me-1"></i>导出历史
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="clearHistory()">
+                        <i class="bi bi-trash me-1"></i>清空历史
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 过滤器 -->
+        <div class="filter-card" style="flex-shrink: 0; margin-bottom: 15px;">
+            <h6 class="mb-2" style="color: rgba(255, 255, 255, 0.95);">
+                <i class="bi bi-funnel me-2"></i>筛选条件
+            </h6>
+            <div class="row">
+                <div class="col-md-3 mb-2">
+                    <label class="form-label" style="color: rgba(255, 255, 255, 0.9); font-size: 0.9rem; margin-bottom: 4px;">用户</label>
+                    <select class="form-select form-select-sm" id="filterUser">
+                        <option value="">全部用户</option>
+                        <option value="admin">管理员</option>
+                        <option value="operator">操作员</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <label class="form-label" style="color: rgba(255, 255, 255, 0.9); font-size: 0.9rem; margin-bottom: 4px;">状态</label>
+                    <select class="form-select form-select-sm" id="filterStatus">
+                        <option value="">全部状态</option>
+                        <option value="completed">已完成</option>
+                        <option value="failed">失败</option>
+                        <option value="processing">处理中</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <label class="form-label" style="color: rgba(255, 255, 255, 0.9); font-size: 0.9rem; margin-bottom: 4px;">开始日期</label>
+                    <input type="date" class="form-control form-control-sm" id="filterStartDate">
+                </div>
+                <div class="col-md-3 mb-2">
+                    <label class="form-label" style="color: rgba(255, 255, 255, 0.9); font-size: 0.9rem; margin-bottom: 4px;">结束日期</label>
+                    <input type="date" class="form-control form-control-sm" id="filterEndDate">
+                </div>
+            </div>
+            <div class="text-end mt-2">
+                <button class="btn btn-primary btn-sm" onclick="applyFilters()">
+                    <i class="bi bi-search me-1"></i>应用筛选
+                </button>
+                <button class="btn btn-outline-secondary btn-sm ms-2" onclick="resetFilters()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>重置
+                </button>
+            </div>
+        </div>
+
+        <!-- 历史记录表格 -->
+        <div class="history-card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; margin-bottom: 0;">
+            <div class="table-responsive" style="flex: 1; overflow-y: auto; overflow-x: hidden;">
+                <table id="historyTable" class="table table-hover">
+                    <thead style="position: sticky; top: 0; z-index: 10;">
+                        <tr>
+                            <th>检测ID</th>
+                            <th>时间</th>
+                            <th>用户</th>
+                            <th>输入目录</th>
+                            <th>图片数量</th>
+                            <th>缺陷数量</th>
+                            <th>处理时间</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody style="color: rgba(255, 255, 255, 0.85);">
+                        <!-- 动态加载 -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 自定义分页控件 -->
+            <div class="d-flex justify-content-between align-items-center mt-2 pt-2" style="color: rgba(255, 255, 255, 0.85); border-top: 1px solid rgba(255, 255, 255, 0.1); flex-shrink: 0;">
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-primary" id="prevPage" onclick="changePage(-1)">
+                        <i class="bi bi-chevron-left"></i> 上一页
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" id="nextPage" onclick="changePage(1)">
+                        下一页 <i class="bi bi-chevron-right"></i>
+                    </button>
+                    <div class="d-flex align-items-center ms-2">
+                        <span class="me-2" style="font-size: 0.9rem;">跳转到</span>
+                        <input type="number" id="pageInput" class="form-control form-control-sm" style="width: 60px;" min="1" placeholder="页号">
+                        <button class="btn btn-sm btn-primary ms-2" onclick="jumpToPage()">Go</button>
+                    </div>
+                </div>
+                <div style="font-size: 0.9rem;">
+                    <span id="pageInfo">第 1 页，共 1 页</span>
+                    <span class="ms-3">每页 <span id="pageSize">20</span> 条</span>
+                    <span class="ms-3">共 <span id="totalRecords">0</span> 条记录</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情查看弹窗 -->
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-clipboard-data me-2"></i>检测详情
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 基本信息 -->
+                    <div class="row mb-4" style="color: rgba(255, 255, 255, 0.85);">
+                        <div class="col-md-6">
+                            <p><strong style="color: rgba(255, 255, 255, 0.9);">检测时间：</strong><span id="detailTime"></span></p>
+                            <p><strong style="color: rgba(255, 255, 255, 0.9);">操作用户：</strong><span id="detailUser"></span></p>
+                            <p><strong style="color: rgba(255, 255, 255, 0.9);">输入目录：</strong><span id="detailDir"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong style="color: rgba(255, 255, 255, 0.9);">总图片数：</strong><span id="detailImages"></span></p>
+                            <p><strong style="color: rgba(255, 255, 255, 0.9);">总缺陷数：</strong><span id="detailDefects"></span></p>
+                            <p><strong style="color: rgba(255, 255, 255, 0.9);">处理时间：</strong><span id="detailProcessTime"></span></p>
+                        </div>
+                    </div>
+
+                    <!-- 筛选工具 -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label" style="color: rgba(255, 255, 255, 0.9); font-size: 0.9rem; margin-bottom: 4px;">筛选图片</label>
+                            <select class="form-select form-select-sm" id="filterDefectType">
+                                <option value="all">全部图片</option>
+                                <option value="defect">仅有缺陷</option>
+                                <option value="normal">无缺陷</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8 text-end">
+                            <span class="badge bg-info" id="filteredCount" style="color: rgba(255, 255, 255, 0.95);">共 0 张图片</span>
+                        </div>
+                    </div>
+
+                    <!-- 图片网格 -->
+                    <div class="image-grid" id="imageGrid">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片查看器弹窗 -->
+    <div class="modal fade" id="imageViewerModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageViewerTitle">图片查看</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="imageViewer" class="image-viewer" src="" alt="检测结果">
+                    <div class="mt-3" id="imageDefectInfo"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/jquery-3.6.0.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/jquery.dataTables.min.js"></script>
+    <script src="/static/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        let historyTable;
+        let historyData = [];
+        let currentPage = 1;
+        let itemsPerPage = 20;
+        let totalPages = 1;
+
+        // 页面加载完成后初始化
+        $(document).ready(function() {
+            initTable();
+            loadHistory();
+        });
+
+        // 初始化数据表
+        function initTable() {
+            historyTable = $('#historyTable').DataTable({
+                language: {
+                    url: '/static/i18n/zh.json'
+                },
+                order: [[1, 'desc']], // 按时间降序排列
+                pageLength: itemsPerPage,
+                paging: false, // 禁用DataTables自带的分页
+                searching: false, // 禁用搜索框
+                info: false, // 禁用信息显示
+                responsive: true,
+                columnDefs: [
+                    { 
+                        targets: [7], // 状态列
+                        render: function(data, type, row) {
+                            if (type === 'display') {
+                                let badgeClass = 'bg-secondary';
+                                let icon = 'bi-question-circle';
+                                
+                                switch(data) {
+                                    case 'completed':
+                                        badgeClass = 'bg-success';
+                                        icon = 'bi-check-circle';
+                                        data = '已完成';
+                                        break;
+                                    case 'failed':
+                                        badgeClass = 'bg-danger';
+                                        icon = 'bi-x-circle';
+                                        data = '失败';
+                                        break;
+                                    case 'processing':
+                                        badgeClass = 'bg-warning';
+                                        icon = 'bi-clock';
+                                        data = '处理中';
+                                        break;
+                                }
+                                
+                                return `<span class="status-badge ${badgeClass} text-white">
+                                    <i class="bi ${icon} me-1"></i>${data}
+                                </span>`;
+                            }
+                            return data;
+                        }
+                    },
+                    {
+                        targets: [8], // 操作列
+                        orderable: false,
+                        render: function(data, type, row) {
+                            return `
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="viewDetail('${row[0]}')" title="查看详情">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="deleteRecord('${row[0]}')" title="删除记录">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                ]
+            });
+        }
+        
+        // 更新分页信息
+        function updatePagination() {
+            totalPages = Math.ceil(historyData.length / itemsPerPage) || 1;
+            currentPage = Math.min(currentPage, totalPages);
+            currentPage = Math.max(currentPage, 1);
+            
+            document.getElementById('pageInfo').textContent = `第 ${currentPage} 页，共 ${totalPages} 页`;
+            document.getElementById('totalRecords').textContent = historyData.length;
+            document.getElementById('pageSize').textContent = itemsPerPage;
+            
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage === totalPages;
+            document.getElementById('pageInput').max = totalPages;
+        }
+        
+        // 切换页面
+        function changePage(delta) {
+            currentPage += delta;
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            
+            updateTableForCurrentPage();
+        }
+        
+        // 跳转到指定页
+        function jumpToPage() {
+            const pageInput = document.getElementById('pageInput');
+            const targetPage = parseInt(pageInput.value);
+            
+            if (targetPage && targetPage >= 1 && targetPage <= totalPages) {
+                currentPage = targetPage;
+                updateTableForCurrentPage();
+                pageInput.value = '';
+            } else {
+                alert(`请输入 1 到 ${totalPages} 之间的页码`);
+            }
+        }
+        
+        // 更新表格显示当前页数据
+        function updateTableForCurrentPage() {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageData = historyData.slice(startIndex, endIndex);
+            
+            historyTable.clear();
+            
+            pageData.forEach(record => {
+                historyTable.row.add([
+                    record.id,
+                    record.timestamp,
+                    record.user,
+                    record.input_dir,
+                    record.total_images,
+                    record.total_defects,
+                    record.processing_time + 's',
+                    record.status,
+                    '' // 操作列，在render中处理
+                ]);
+            });
+            
+            historyTable.draw();
+            updatePagination();
+        }
+
+        // 加载历史数据
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/detection-history');
+                const data = await response.json();
+                
+                if (data.success) {
+                    historyData = data.history;
+                    currentPage = 1;
+                    updateTableForCurrentPage();
+                }
+            } catch (error) {
+                console.error('加载历史失败:', error);
+            }
+        }
+
+        // 更新表格数据（用于筛选）
+        function updateTable(data) {
+            historyData = data;
+            currentPage = 1;
+            updateTableForCurrentPage();
+        }
+
+        // 应用筛选
+        function applyFilters() {
+            const userFilter = document.getElementById('filterUser').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+            
+            let filteredData = historyData.filter(record => {
+                let match = true;
+                
+                if (userFilter && record.user !== userFilter) {
+                    match = false;
+                }
+                
+                if (statusFilter && record.status !== statusFilter) {
+                    match = false;
+                }
+                
+                if (startDate) {
+                    const recordDate = new Date(record.timestamp).toISOString().split('T')[0];
+                    if (recordDate < startDate) {
+                        match = false;
+                    }
+                }
+                
+                if (endDate) {
+                    const recordDate = new Date(record.timestamp).toISOString().split('T')[0];
+                    if (recordDate > endDate) {
+                        match = false;
+                    }
+                }
+                
+                return match;
+            });
+            
+            updateTable(filteredData);
+        }
+
+        // 重置筛选
+        function resetFilters() {
+            document.getElementById('filterUser').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            updateTable(historyData);
+        }
+
+        // 查看详情
+        let currentDetailData = null;
+
+        async function viewDetail(id) {
+            try {
+                const response = await fetch(`/api/detection-history/${id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentDetailData = data.record;
+                    showDetailModal(data.record);
+                } else {
+                    alert('获取详情失败: ' + data.message);
+                }
+            } catch (error) {
+                alert('获取详情出错: ' + error.message);
+            }
+        }
+
+        function showDetailModal(record) {
+            // 填充基本信息
+            document.getElementById('detailTime').textContent = record.timestamp;
+            document.getElementById('detailUser').textContent = record.user;
+            document.getElementById('detailDir').textContent = record.input_dir;
+            document.getElementById('detailImages').textContent = record.total_images;
+            document.getElementById('detailDefects').textContent = record.total_defects;
+            document.getElementById('detailProcessTime').textContent = record.processing_time + 's';
+            
+            // 重置筛选器
+            document.getElementById('filterDefectType').value = 'all';
+            
+            // 渲染图片网格
+            renderImageGrid(record.images, record.detections, 'all');
+            
+            // 显示弹窗
+            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+            modal.show();
+        }
+
+        function renderImageGrid(images, detections, filter) {
+            const grid = document.getElementById('imageGrid');
+            grid.innerHTML = '';
+            
+            let filteredImages = images;
+            
+            // 应用筛选
+            if (filter === 'defect') {
+                filteredImages = images.filter(img => detections[img] && detections[img].length > 0);
+            } else if (filter === 'normal') {
+                filteredImages = images.filter(img => !detections[img] || detections[img].length === 0);
+            }
+            
+            // 更新计数
+            document.getElementById('filteredCount').textContent = `共 ${filteredImages.length} 张图片`;
+            
+            // 生成图片卡片
+            filteredImages.forEach(img => {
+                const defectList = detections[img] || [];
+                const hasDefect = defectList.length > 0;
+                
+                const card = document.createElement('div');
+                card.className = 'image-card';
+                
+                let defectBadges = '';
+                defectList.forEach(defect => {
+                    const badgeClass = defect.category === 'link' ? 'bg-danger' : 'bg-warning';
+                    defectBadges += `<span class="badge defect-badge ${badgeClass}">${defect.category}</span>`;
+                });
+                
+                card.innerHTML = `
+                    <img src="/results/${img}" class="defect-image" 
+                         onclick="viewImage('${img}', ${JSON.stringify(defectList).replace(/"/g, '&quot;')})" 
+                         alt="${img}">
+                    <div class="mt-2">
+                        <small class="d-block text-truncate" title="${img}" style="color: rgba(255, 255, 255, 0.7);">${img}</small>
+                        <div class="mt-1">
+                            ${hasDefect ? defectBadges : '<span class="badge bg-success defect-badge">正常</span>'}
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function viewImage(imageName, defects) {
+            document.getElementById('imageViewerTitle').textContent = imageName;
+            document.getElementById('imageViewer').src = `/results/${imageName}`;
+            
+            const defectInfo = document.getElementById('imageDefectInfo');
+            if (defects && defects.length > 0) {
+                let html = '<div class="alert alert-warning"><strong>检测到 ' + defects.length + ' 个缺陷：</strong><br>';
+                defects.forEach((defect, index) => {
+                    html += `${index + 1}. ${defect.category} (置信度: ${(defect.score * 100).toFixed(1)}%)<br>`;
+                });
+                html += '</div>';
+                defectInfo.innerHTML = html;
+            } else {
+                defectInfo.innerHTML = '<div class="alert alert-success">未检测到缺陷</div>';
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('imageViewerModal'));
+            modal.show();
+        }
+
+        // 筛选器change事件
+        document.getElementById('filterDefectType').addEventListener('change', function() {
+            if (currentDetailData) {
+                renderImageGrid(
+                    currentDetailData.images, 
+                    currentDetailData.detections, 
+                    this.value
+                );
+            }
+        });
+
+        // 删除记录
+        function deleteRecord(id) {
+            if (confirm('确定要删除这条记录吗？')) {
+                historyData = historyData.filter(r => r.id !== id);
+                // 如果当前页没有数据了，回到上一页
+                if ((currentPage - 1) * itemsPerPage >= historyData.length && currentPage > 1) {
+                    currentPage--;
+                }
+                updateTableForCurrentPage();
+            }
+        }
+
+        // 导出历史
+        function exportHistory() {
+            const dataStr = JSON.stringify(historyData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `detection_history_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        // 清空历史
+        function clearHistory() {
+            if (confirm('确定要清空所有历史记录吗？此操作不可恢复！')) {
+                historyData = [];
+                currentPage = 1;
+                updateTableForCurrentPage();
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('退出失败:', error);
+            }
+        }
+    </script>
+</body>
+</html> 

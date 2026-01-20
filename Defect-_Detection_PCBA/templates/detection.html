@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCB缺陷检测系统 - 检测管理</title>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1128 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, #0a0d1f, #151932, #0a0d1f);
+            min-height: 100vh;
+            width: 250px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.8);
+            border-right: 1px solid rgba(0, 162, 255, 0.2);
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 10px 18px;
+            border-radius: 6px;
+            margin: 3px 12px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: linear-gradient(90deg, rgba(0, 162, 255, 0.2), rgba(0, 162, 255, 0.05));
+            color: #00d4ff;
+            border-left: 3px solid #00a2ff;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        .detection-card {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border-radius: 15px;
+            padding: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .upload-area {
+            border: 2px dashed rgba(0, 162, 255, 0.3);
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: rgba(40, 40, 60, 0.5);
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #00a2ff;
+            background: rgba(0, 162, 255, 0.1);
+        }
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+        .form-control, .form-select {
+            background: rgba(40, 40, 60, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            padding: 8px 12px;
+        }
+        .form-control:focus, .form-select:focus {
+            background: rgba(40, 40, 60, 0.8);
+            border-color: #00a2ff;
+            color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 0.2rem rgba(0, 162, 255, 0.25);
+        }
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .card {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+        }
+        .result-image {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .defect-badge {
+            padding: 6px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .progress-container {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <nav class="sidebar">
+        <div class="p-3 text-center border-bottom" style="border-color: rgba(0, 162, 255, 0.2) !important;">
+            <h4 class="text-white mb-0" style="font-size: 1.2rem;">
+                <i class="bi bi-cpu-fill me-2" style="color: #00d4ff;"></i>PCB缺陷检测
+            </h4>
+            <small class="text-white-50" style="font-size: 0.75rem;">Industrial AI Platform</small>
+        </div>
+        <ul class="nav flex-column mt-3">
+            <li class="nav-item">
+                <a class="nav-link" href="/">
+                    <i class="bi bi-speedometer2 me-2"></i>仪表板
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/detection">
+                    <i class="bi bi-search me-2"></i>检测管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/rtsp-monitor">
+                    <i class="bi bi-camera-video me-2"></i>数据大屏
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/history">
+                    <i class="bi bi-clock-history me-2"></i>检测历史
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/monitoring">
+                    <i class="bi bi-graph-up me-2"></i>系统监控
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings">
+                    <i class="bi bi-gear me-2"></i>系统设置
+                </a>
+            </li>
+        </ul>
+        <div class="position-absolute bottom-0 w-100 p-3">
+            <div class="d-flex align-items-center text-white-50" style="font-size: 0.95rem;">
+                <i class="bi bi-person-circle me-2"></i>
+                <span id="username">用户</span>
+            </div>
+            <button class="btn btn-sm btn-outline-light mt-2" onclick="logout()" style="font-size: 0.9rem; padding: 6px 12px;">
+                <i class="bi bi-box-arrow-right me-1"></i>退出
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        <!-- 顶部导航 -->
+        <nav class="navbar navbar-expand-lg navbar-dark rounded-3 shadow-sm mb-4" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px);">
+            <div class="container-fluid">
+                <span class="navbar-brand text-white">
+                    <i class="bi bi-search me-2"></i>检测管理
+                </span>
+            </div>
+        </nav>
+
+        <!-- 检测控制面板 -->
+        <div class="row mb-4">
+            <!-- 批量检测 -->
+            <div class="col-lg-6 mb-4">
+                <div class="detection-card h-100 d-flex flex-column">
+                    <h5 class="mb-3" style="color: rgba(255, 255, 255, 0.95);">
+                        <i class="bi bi-images me-2 text-primary"></i>批量检测
+                    </h5>
+                    <form id="batchDetectionForm" class="flex-grow-1 d-flex flex-column">
+                        <div class="mb-3">
+                            <label class="form-label" style="color: rgba(255, 255, 255, 0.9);">输入目录</label>
+                            <input type="text" class="form-control" id="inputDir" value="dates/images" placeholder="输入图片目录路径">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" style="color: rgba(255, 255, 255, 0.9);">置信度阈值</label>
+                                <input type="range" class="form-range" id="confThresh" min="0.1" max="1.0" step="0.1" value="0.3">
+                                <small style="color: rgba(255, 255, 255, 0.7);">当前值: <span id="confValue" style="color: rgba(255, 255, 255, 0.9);">0.3</span></small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" style="color: rgba(255, 255, 255, 0.9);">NMS阈值</label>
+                                <input type="range" class="form-range" id="nmsThresh" min="0.1" max="1.0" step="0.1" value="0.7">
+                                <small style="color: rgba(255, 255, 255, 0.7);">当前值: <span id="nmsValue" style="color: rgba(255, 255, 255, 0.9);">0.7</span></small>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 mt-auto">
+                            <i class="bi bi-play-circle me-2"></i>开始批量检测
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 单张检测 -->
+            <div class="col-lg-6 mb-4">
+                <div class="detection-card h-100 d-flex flex-column">
+                    <h5 class="mb-3" style="color: rgba(255, 255, 255, 0.95);">
+                        <i class="bi bi-file-image me-2 text-success"></i>单张检测
+                    </h5>
+                    <div class="upload-area flex-grow-1 d-flex flex-column justify-content-center" id="uploadArea">
+                        <i class="bi bi-cloud-upload fs-1 mb-3" style="color: rgba(255, 255, 255, 0.5);"></i>
+                        <p class="mb-2" style="color: rgba(255, 255, 255, 0.8);">点击或拖拽图片到此处</p>
+                        <small style="color: rgba(255, 255, 255, 0.6);">支持 JPG, PNG, BMP 格式</small>
+                        <input type="file" id="fileInput" class="d-none" accept="image/*">
+                    </div>
+                    <button class="btn btn-success w-100 mt-3" id="uploadBtn" disabled>
+                        <i class="bi bi-upload me-2"></i>上传并检测
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 进度显示 -->
+        <div class="progress-container" id="progressContainer" style="display: none;">
+            <h6 style="color: rgba(255, 255, 255, 0.95);"><i class="bi bi-gear-fill me-2"></i>检测进行中...</h6>
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+            </div>
+            <div class="d-flex justify-content-between mt-2">
+                <small style="color: rgba(255, 255, 255, 0.7);">处理状态: <span id="statusText">准备中...</span></small>
+                <small style="color: rgba(255, 255, 255, 0.7);">已处理: <span id="processedCount">0</span> 张</small>
+            </div>
+        </div>
+
+        <!-- 检测结果 -->
+        <div class="row" id="resultsContainer" style="display: none;">
+            <div class="col-12 mb-4">
+                <div class="detection-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0" style="color: rgba(255, 255, 255, 0.95);">
+                            <i class="bi bi-clipboard-check me-2 text-info"></i>检测结果
+                        </h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="exportResults()">
+                                <i class="bi bi-download me-1"></i>导出结果
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="clearResults()">
+                                <i class="bi bi-trash me-1"></i>清空结果
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 统计摘要 -->
+                    <div class="row mb-4" id="resultSummary" style="color: rgba(255, 255, 255, 0.9);">
+                        <!-- 动态生成 -->
+                    </div>
+                    
+                    <!-- 结果图片网格 -->
+                    <div class="row" id="resultImages">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/jquery-3.6.0.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let selectedFile = null;
+
+        // 更新滑块值显示
+        document.getElementById('confThresh').addEventListener('input', function() {
+            document.getElementById('confValue').textContent = this.value;
+        });
+        
+        document.getElementById('nmsThresh').addEventListener('input', function() {
+            document.getElementById('nmsValue').textContent = this.value;
+        });
+
+        // 文件上传区域
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#00a2ff';
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#dee2e6';
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#dee2e6';
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            if (file.type.startsWith('image/')) {
+                selectedFile = file;
+                uploadBtn.disabled = false;
+                uploadArea.innerHTML = `
+                    <i class="bi bi-check-circle fs-1 text-success mb-3"></i>
+                    <p class="mb-2" style="color: rgba(255, 255, 255, 0.8);">已选择文件: ${file.name}</p>
+                    <small style="color: rgba(255, 255, 255, 0.6);">大小: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                `;
+            }
+        }
+
+        // 批量检测
+        document.getElementById('batchDetectionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                input_dir: document.getElementById('inputDir').value,
+                conf_thresh: parseFloat(document.getElementById('confThresh').value),
+                nms_thresh: parseFloat(document.getElementById('nmsThresh').value)
+            };
+            
+            showProgress('开始批量检测...');
+            
+            try {
+                const response = await fetch('/api/run_detect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                hideProgress();
+                
+                if (data.success) {
+                    showResults(data);
+                } else {
+                    alert('检测失败: ' + data.message);
+                }
+            } catch (error) {
+                hideProgress();
+                alert('检测出错: ' + error.message);
+            }
+        });
+
+        // 单张上传检测
+        uploadBtn.addEventListener('click', async function() {
+            if (!selectedFile) return;
+            
+            // 检查文件大小（50MB限制）
+            if (selectedFile.size > 50 * 1024 * 1024) {
+                alert('文件太大，请选择小于50MB的图片');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            
+            // 获取检测参数
+            formData.append('conf_thresh', document.getElementById('confThresh').value);
+            formData.append('nms_thresh', document.getElementById('nmsThresh').value);
+            
+            showProgress('上传并检测中...');
+            uploadBtn.disabled = true;
+            
+            try {
+                // 创建一个带超时的fetch请求（5分钟超时）
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 300000); // 5分钟
+                
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData,
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`服务器错误: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                hideProgress();
+                
+                if (data.success) {
+                    // 显示检测结果
+                    showResults(data);
+                    
+                    // 重置上传区域
+                    selectedFile = null;
+                    uploadBtn.disabled = true;
+                    uploadArea.innerHTML = `
+                        <i class="bi bi-cloud-upload fs-1 mb-3" style="color: rgba(255, 255, 255, 0.5);"></i>
+                        <p class="mb-2" style="color: rgba(255, 255, 255, 0.8);">点击或拖拽图片到此处</p>
+                        <small style="color: rgba(255, 255, 255, 0.6);">支持 JPG, PNG, BMP 格式</small>
+                    `;
+                } else {
+                    uploadBtn.disabled = false;
+                    alert('检测失败: ' + data.message);
+                }
+            } catch (error) {
+                hideProgress();
+                uploadBtn.disabled = false;
+                
+                if (error.name === 'AbortError') {
+                    alert('检测超时，请稍后重试或联系管理员');
+                } else if (error.message.includes('Failed to fetch')) {
+                    alert('网络错误或服务器无响应，请检查:\n1. 服务器是否正常运行\n2. 网络连接是否正常\n3. 文件是否过大');
+                } else {
+                    alert('检测出错: ' + error.message);
+                }
+                console.error('Upload error:', error);
+            }
+        });
+
+        function showProgress(status) {
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('statusText').textContent = status;
+            document.querySelector('.progress-bar').style.width = '100%';
+        }
+
+        function hideProgress() {
+            document.getElementById('progressContainer').style.display = 'none';
+        }
+
+        function showResults(data) {
+            // 显示统计摘要
+            const summary = document.getElementById('resultSummary');
+            summary.innerHTML = `
+                <div class="col-md-3">
+                    <div class="text-center p-3 rounded" style="background: rgba(40, 40, 60, 0.6);">
+                        <h4 class="text-primary">${data.summary.total_images}</h4>
+                        <small style="color: rgba(255, 255, 255, 0.8);">总图片数</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 rounded" style="background: rgba(40, 40, 60, 0.6);">
+                        <h4 class="text-danger">${data.summary.total_defects}</h4>
+                        <small style="color: rgba(255, 255, 255, 0.8);">总缺陷数</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 rounded" style="background: rgba(40, 40, 60, 0.6);">
+                        <h4 class="text-success">${(100 - (data.summary.total_defects / data.summary.total_images * 100)).toFixed(1)}%</h4>
+                        <small style="color: rgba(255, 255, 255, 0.8);">合格率</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 rounded" style="background: rgba(40, 40, 60, 0.6);">
+                        <h4 class="text-info">${data.summary.processing_time}s</h4>
+                        <small style="color: rgba(255, 255, 255, 0.8);">处理时间</small>
+                    </div>
+                </div>
+            `;
+
+            // 显示结果图片
+            const resultImages = document.getElementById('resultImages');
+            resultImages.innerHTML = '';
+            
+            data.images.forEach(img => {
+                const detections = data.detections[img] || [];
+                const col = document.createElement('div');
+                col.className = 'col-lg-4 col-md-6 mb-4';
+                
+                let defectBadges = '';
+                detections.forEach(det => {
+                    defectBadges += `<span class="defect-badge bg-${det.category === 'link' ? 'danger' : 'warning'} text-white me-1">${det.category} (${(det.score * 100).toFixed(1)}%)</span>`;
+                });
+                
+                col.innerHTML = `
+                    <div class="card h-100">
+                        <img src="/results/${img}" class="card-img-top result-image" alt="${img}">
+                        <div class="card-body">
+                            <h6 class="card-title" style="color: rgba(255, 255, 255, 0.9);">${img}</h6>
+                            <div class="mb-2">${defectBadges || '<span class="badge bg-success">正常</span>'}</div>
+                            <small style="color: rgba(255, 255, 255, 0.6);">缺陷数: ${detections.length}</small>
+                        </div>
+                    </div>
+                `;
+                resultImages.appendChild(col);
+            });
+            
+            document.getElementById('resultsContainer').style.display = 'block';
+        }
+
+        function exportResults() {
+            alert('导出功能开发中...');
+        }
+
+        function clearResults() {
+            document.getElementById('resultsContainer').style.display = 'none';
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('退出失败:', error);
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCB缺陷检测系统 - 数据大屏</title>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1128 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, #0a0d1f, #151932, #0a0d1f);
+            min-height: 100vh;
+            width: 250px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.8);
+            border-right: 1px solid rgba(0, 162, 255, 0.2);
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 10px 18px;
+            border-radius: 6px;
+            margin: 3px 12px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: linear-gradient(90deg, rgba(0, 162, 255, 0.2), rgba(0, 162, 255, 0.05));
+            color: #00d4ff;
+            border-left: 3px solid #00a2ff;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 15px;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .monitor-card {
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.8), rgba(20, 35, 60, 0.6));
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            margin-bottom: 12px;
+            backdrop-filter: blur(10px);
+        }
+        .video-container {
+            position: relative;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
+            border-radius: 12px;
+            overflow: hidden;
+            width: 100%;
+            height: calc(100vh - 200px); /* 使用固定高度而不是padding-top */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* 保持等比缩放，不裁剪 */
+            display: block;
+        }
+        .video-container .video-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 100%;
+        }
+        .video-placeholder {
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .monitor-card > div::-webkit-scrollbar {
+            width: 6px;
+        }
+        .monitor-card > div::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+        .monitor-card > div::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        .monitor-card > div::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .status-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            z-index: 10;
+        }
+        .status-running {
+            background: #28a745;
+            color: white;
+        }
+        .status-stopped {
+            background: #6c757d;
+            color: white;
+        }
+        .status-error {
+            background: #dc3545;
+            color: white;
+        }
+        .form-label {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        .form-control, .form-select, .form-range {
+            border-radius: 8px;
+            background: rgba(40, 40, 60, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            padding: 8px 12px;
+        }
+        .form-control:focus, .form-select:focus {
+            background: rgba(40, 40, 60, 0.8);
+            border-color: #00a2ff;
+            color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 0.2rem rgba(0, 162, 255, 0.25);
+        }
+        .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .control-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .stats-card {
+            background: linear-gradient(90deg, #00a2ff 0%, #00d4ff 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 162, 255, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 162, 255, 0.5);
+        }
+        .stats-card h3 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        .stats-card p {
+            margin: 4px 0 0 0;
+            opacity: 0.95;
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        /* 自定义滚动条样式 */
+        .col-lg-3::-webkit-scrollbar {
+            width: 6px;
+        }
+        .col-lg-3::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+        .col-lg-3::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+        .col-lg-3::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <nav class="sidebar">
+        <div class="p-3 text-center border-bottom" style="border-color: rgba(0, 162, 255, 0.2) !important;">
+            <h4 class="text-white mb-0" style="font-size: 1.2rem;">
+                <i class="bi bi-cpu-fill me-2" style="color: #00d4ff;"></i>PCB缺陷检测
+            </h4>
+            <small class="text-white-50" style="font-size: 0.75rem;">Industrial AI Platform</small>
+        </div>
+        <ul class="nav flex-column mt-3">
+            <li class="nav-item">
+                <a class="nav-link" href="/">
+                    <i class="bi bi-speedometer2 me-2"></i>仪表板
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/detection">
+                    <i class="bi bi-search me-2"></i>检测管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="/rtsp-monitor">
+                    <i class="bi bi-camera-video me-2"></i>数据大屏
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/history">
+                    <i class="bi bi-clock-history me-2"></i>检测历史
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/monitoring">
+                    <i class="bi bi-graph-up me-2"></i>系统监控
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/settings">
+                    <i class="bi bi-gear me-2"></i>系统设置
+                </a>
+            </li>
+        </ul>
+        <div class="position-absolute bottom-0 w-100 p-3">
+            <div class="d-flex align-items-center text-white-50" style="font-size: 0.95rem;">
+                <i class="bi bi-person-circle me-2"></i>
+                <span id="username">用户</span>
+            </div>
+            <button class="btn btn-sm btn-outline-light mt-2" onclick="logout()" style="font-size: 0.9rem; padding: 6px 12px;">
+                <i class="bi bi-box-arrow-right me-1"></i>退出
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        <!-- 顶部导航 -->
+        <nav class="navbar navbar-expand-lg navbar-dark rounded-3 shadow-sm mb-2" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 10px 16px; flex-shrink: 0;">
+            <div class="container-fluid">
+                <span class="navbar-brand text-white" style="font-size: 1.2rem; margin-bottom: 0;">
+                    <i class="bi bi-display me-2"></i>数据大屏
+                </span>
+                <span class="badge bg-gradient" style="background: linear-gradient(90deg, #00a2ff 0%, #00d4ff 100%); font-size: 0.9rem; padding: 8px 14px;">YOLOv8实时检测</span>
+            </div>
+        </nav>
+
+        <!-- 控制面板 -->
+        <div class="row" style="flex: 1; overflow: hidden;">
+            <div class="col-lg-9">
+                <div class="monitor-card" style="height: 100%; display: flex; flex-direction: column;">
+                    <div class="d-flex justify-content-between align-items-center mb-2" style="flex-shrink: 0;">
+                        <h5 class="mb-0" style="color: rgba(255, 255, 255, 0.95); font-weight: 600; font-size: 1.15rem;">
+                            <i class="bi bi-display me-2" style="color: #00a2ff;"></i>实时视频流
+                        </h5>
+                        <div>
+                            <button class="btn btn-success me-2" id="startBtn" style="padding: 8px 16px; font-size: 0.95rem;">
+                                <i class="bi bi-play-circle me-1"></i>启动检测
+                            </button>
+                            <button class="btn btn-danger" id="stopBtn" disabled style="padding: 8px 16px; font-size: 0.95rem;">
+                                <i class="bi bi-stop-circle me-1"></i>停止检测
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 视频显示区 -->
+                    <div class="video-container" id="videoContainer" style="flex: 1; height: auto;">
+                        <div class="video-placeholder" id="videoPlaceholder">
+                            <i class="bi bi-camera-video-off" style="font-size: 5rem;"></i>
+                            <p class="mt-3" style="font-size: 1.1rem;">点击"启动检测"开始实时监控</p>
+                        </div>
+                        <video id="videoPlayer" style="display: none;" autoplay muted playsinline></video>
+                        <div class="status-badge status-stopped" id="statusBadge">
+                            <i class="bi bi-circle-fill me-1"></i>未运行
+                        </div>
+                    </div>
+                    
+                    <!-- 视频控制栏 -->
+                    <div class="d-flex justify-content-between align-items-center mt-1" style="flex-shrink: 0;">
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary" id="muteBtn" style="display: none; padding: 3px 8px; font-size: 0.75rem;">
+                                <i class="bi bi-volume-mute"></i> 静音
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" id="fullscreenBtn" style="display: none; padding: 3px 8px; font-size: 0.75rem;">
+                                <i class="bi bi-fullscreen"></i> 全屏
+                            </button>
+                        </div>
+                        <small id="videoInfo" style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.6);"></small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 配置面板 -->
+            <div class="col-lg-3">
+                <div class="monitor-card" style="height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                    <div style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding-right: 4px;">
+                        <!-- 检测配置 -->
+                        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                            <h5 class="mb-3" style="color: rgba(255, 255, 255, 0.95); font-weight: 600; font-size: 1.15rem;">
+                                <i class="bi bi-sliders me-2" style="color: #00a2ff;"></i>检测配置
+                            </h5>
+                            <form id="configForm">
+                                <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.95rem; margin-bottom: 6px; color: rgba(255, 255, 255, 0.9);">输入RTSP地址</label>
+                                    <input type="text" class="form-control" id="inputRtsp" value="rtsp://192.168.1.195/video0" style="font-size: 0.9rem; padding: 8px 12px;">
+                                    <small style="font-size: 0.85rem; color: rgba(255, 255, 255, 0.6);">摄像头RTSP流地址</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" style="font-size: 0.95rem; margin-bottom: 6px; color: rgba(255, 255, 255, 0.9);">置信度阈值</label>
+                                    <input type="range" class="form-range" id="confThresh" min="0.1" max="0.9" step="0.1" value="0.3" style="height: 8px;">
+                                    <small style="font-size: 0.85rem; color: rgba(255, 255, 255, 0.7);">当前值: <span id="confValue" style="color: rgba(255, 255, 255, 0.9); font-weight: 600;">0.3</span></small>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label" style="font-size: 0.95rem; margin-bottom: 6px; color: rgba(255, 255, 255, 0.9);">NMS阈值</label>
+                                    <input type="range" class="form-range" id="nmsThresh" min="0.1" max="0.9" step="0.1" value="0.7" style="height: 8px;">
+                                    <small style="font-size: 0.85rem; color: rgba(255, 255, 255, 0.7);">当前值: <span id="nmsValue" style="color: rgba(255, 255, 255, 0.9); font-weight: 600;">0.7</span></small>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- 检测类别 -->
+                        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                            <h5 class="mb-3" style="color: rgba(255, 255, 255, 0.95); font-weight: 600; font-size: 1.15rem;">
+                                <i class="bi bi-tags me-2" style="color: #00a2ff;"></i>检测类别
+                            </h5>
+                            <div class="d-flex align-items-center mb-2 p-2 rounded" style="background: rgba(220, 53, 69, 0.15);">
+                                <span class="badge bg-danger me-2" style="width: 70px; padding: 8px; font-size: 0.85rem;">link</span>
+                                <span style="font-weight: 500; color: rgba(255, 255, 255, 0.85); font-size: 0.95rem;">连锡缺陷</span>
+                            </div>
+                            <div class="d-flex align-items-center p-2 rounded" style="background: rgba(40, 167, 69, 0.15);">
+                                <span class="badge bg-success me-2" style="width: 70px; padding: 8px; font-size: 0.85rem;">unknown</span>
+                                <span style="font-weight: 500; color: rgba(255, 255, 255, 0.85); font-size: 0.95rem;">未知缺陷</span>
+                            </div>
+                        </div>
+
+                        <!-- 检测统计 -->
+                        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 12px 0;">
+                            <div class="stats-card mb-3" style="background: linear-gradient(135deg, rgba(10, 20, 40, 0.5), rgba(15, 25, 50, 0.45)); border: 1px solid rgba(0, 162, 255, 0.25); padding: 16px;">
+                                <h3 id="detectionCounter" style="font-size: 2.2rem;">0</h3>
+                                <p style="font-size: 0.95rem;">检测目标数</p>
+                            </div>
+                            <div class="stats-card mb-0" style="background: linear-gradient(135deg, rgba(10, 20, 40, 0.5), rgba(12, 22, 45, 0.45)); border: 1px solid rgba(0, 162, 255, 0.25); padding: 16px;">
+                                <h3 id="runtimeCounter" style="font-size: 2.2rem;">00:00:00</h3>
+                                <p style="font-size: 0.95rem;">运行时间</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/jquery-3.6.0.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let statusCheckInterval = null;
+        let statsUpdateInterval = null;
+        let runtimeInterval = null;
+        let startTime = null;
+
+        // 更新滑块值显示
+        document.getElementById('confThresh').addEventListener('input', function() {
+            document.getElementById('confValue').textContent = this.value;
+        });
+        
+        document.getElementById('nmsThresh').addEventListener('input', function() {
+            document.getElementById('nmsValue').textContent = this.value;
+        });
+
+        // 启动检测
+        document.getElementById('startBtn').addEventListener('click', async function() {
+            const config = {
+                input_rtsp: document.getElementById('inputRtsp').value,
+                conf_thresh: parseFloat(document.getElementById('confThresh').value),
+                nms_thresh: parseFloat(document.getElementById('nmsThresh').value)
+            };
+
+            try {
+                const response = await fetch('/api/rtsp/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('success', data.message);
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+                    startStatusCheck();
+                    startRuntimeCounter();
+                    
+                    // 尝试加载视频流
+                    setTimeout(() => {
+                        loadVideoStream(data.output_url);
+                    }, 3000);
+                } else {
+                    showNotification('error', data.message);
+                }
+            } catch (error) {
+                showNotification('error', '启动失败: ' + error.message);
+            }
+        });
+
+        // 停止检测
+        document.getElementById('stopBtn').addEventListener('click', async function() {
+            try {
+                const response = await fetch('/api/rtsp/stop', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('success', data.message);
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('stopBtn').disabled = true;
+                    stopStatusCheck();
+                    stopRuntimeCounter();
+                    stopVideoStream();
+                } else {
+                    showNotification('error', data.message);
+                }
+            } catch (error) {
+                showNotification('error', '停止失败: ' + error.message);
+            }
+        });
+
+        // 状态检查
+        let lastVideoCheckTime = 0;
+        let videoReconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 3;
+        const RECONNECT_COOLDOWN = 10000; // 10秒冷却时间
+        
+        function startStatusCheck() {
+            updateStatus();
+            updateStats();
+            statusCheckInterval = setInterval(updateStatus, 3000); // 改为3秒检查一次，减少频率
+            statsUpdateInterval = setInterval(updateStats, 2000);  // 改为2秒更新一次
+        }
+
+        function stopStatusCheck() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+                statusCheckInterval = null;
+            }
+            if (statsUpdateInterval) {
+                clearInterval(statsUpdateInterval);
+                statsUpdateInterval = null;
+            }
+        }
+
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/rtsp/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const status = data.status;
+                    
+                    // 更新状态徽章
+                    const badge = document.getElementById('statusBadge');
+                    if (status.running) {
+                        badge.className = 'status-badge status-running';
+                        badge.innerHTML = '<i class="bi bi-circle-fill me-1"></i>运行中';
+                    } else if (status.error) {
+                        badge.className = 'status-badge status-error';
+                        badge.innerHTML = '<i class="bi bi-exclamation-circle-fill me-1"></i>错误';
+                    } else {
+                        badge.className = 'status-badge status-stopped';
+                        badge.innerHTML = '<i class="bi bi-circle-fill me-1"></i>未运行';
+                    }
+                    
+                    // 优化的自动重连逻辑 - 添加防抖和限制
+                    const now = Date.now();
+                    if (status.running && !isVideoPlaying()) {
+                        // 检查是否在冷却时间内
+                        if (now - lastVideoCheckTime < RECONNECT_COOLDOWN) {
+                            console.log(`重连冷却中，剩余 ${Math.ceil((RECONNECT_COOLDOWN - (now - lastVideoCheckTime)) / 1000)} 秒`);
+                            return;
+                        }
+                        
+                        // 检查重连次数
+                        if (videoReconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                            console.warn('已达到最大重连次数，请手动刷新页面或重启检测器');
+                            showNotification('error', '视频连接失败次数过多，请刷新页面或重启检测器');
+                            return;
+                        }
+                        
+                        console.log(`检测器运行中但视频未播放，尝试重连 (${videoReconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+                        videoReconnectAttempts++;
+                        lastVideoCheckTime = now;
+                        
+                        // 更新按钮状态
+                        document.getElementById('startBtn').disabled = true;
+                        document.getElementById('stopBtn').disabled = false;
+                        
+                        // 启动状态检查和运行时间计数器
+                        if (!statusCheckInterval) {
+                            startStatusCheck();
+                        }
+                        if (!runtimeInterval && status.start_time) {
+                            // 使用服务器返回的启动时间（秒）转换为毫秒
+                            startRuntimeCounter(status.start_time * 1000);
+                        }
+                        
+                        // 重新加载视频流
+                        if (status.output_url) {
+                            setTimeout(() => {
+                                loadVideoStream(status.output_url);
+                            }, 2000); // 增加到2秒等待时间
+                        }
+                    } else if (status.running && isVideoPlaying()) {
+                        // 视频正常播放，重置重连计数
+                        videoReconnectAttempts = 0;
+                    }
+                    
+                    // 如果检测器停止了，更新按钮状态
+                    if (!status.running && document.getElementById('stopBtn').disabled === false) {
+                        document.getElementById('startBtn').disabled = false;
+                        document.getElementById('stopBtn').disabled = true;
+                        stopRuntimeCounter();
+                        stopVideoStream();
+                        // 重置统计数据和重连计数
+                        document.getElementById('detectionCounter').textContent = '0';
+                        videoReconnectAttempts = 0;
+                        lastVideoCheckTime = 0;
+                    }
+                    
+                    // 如果检测器正在运行但计时器未启动，启动计时器
+                    if (status.running && !runtimeInterval && status.start_time) {
+                        startRuntimeCounter(status.start_time * 1000);
+                    }
+                }
+            } catch (error) {
+                console.error('状态更新失败:', error);
+            }
+        }
+        
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/rtsp/stats');
+                const data = await response.json();
+                
+                if (data.success && data.stats) {
+                    const stats = data.stats;
+                    
+                    // 更新检测目标数显示
+                    if (stats.detection_count !== undefined) {
+                        document.getElementById('detectionCounter').textContent = stats.detection_count;
+                    }
+                }
+            } catch (error) {
+                console.error('统计更新失败:', error);
+            }
+        }
+
+        // 运行时间计数器
+        function startRuntimeCounter(serverStartTime = null) {
+            // 如果提供了服务器启动时间（毫秒时间戳），使用它；否则使用当前时间
+            if (serverStartTime) {
+                startTime = serverStartTime;
+            } else {
+                startTime = Date.now();
+            }
+            updateRuntimeDisplay();
+            if (runtimeInterval) {
+                clearInterval(runtimeInterval);
+            }
+            runtimeInterval = setInterval(updateRuntimeDisplay, 1000);
+        }
+
+        function stopRuntimeCounter() {
+            if (runtimeInterval) {
+                clearInterval(runtimeInterval);
+                runtimeInterval = null;
+            }
+            startTime = null;
+            document.getElementById('runtimeCounter').textContent = '00:00:00';
+        }
+
+        function updateRuntimeDisplay() {
+            if (!startTime) return;
+            
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            
+            document.getElementById('runtimeCounter').textContent = 
+                `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // 检查视频是否正在播放或正在连接中
+        function isVideoPlaying() {
+            const videoPlayer = document.getElementById('videoPlayer');
+            
+            // 1. 检查视频元素是否有实际播放的视频流
+            const hasVideoStream = videoPlayer.style.display !== 'none' && 
+                                  videoPlayer.srcObject !== null && 
+                                  !videoPlayer.paused &&
+                                  videoPlayer.readyState >= 2; // HAVE_CURRENT_DATA
+            
+            // 2. 检查WebRTC连接状态
+            const hasActiveConnection = pc !== null && 
+                                       (pc.iceConnectionState === 'connected' || 
+                                        pc.iceConnectionState === 'checking' ||
+                                        pc.iceConnectionState === 'new' ||  // 新增：刚创建的连接
+                                        pc.connectionState === 'connected' ||
+                                        pc.connectionState === 'connecting');
+            
+            // 3. 检查是否正在连接中（显示加载状态）
+            const placeholder = document.getElementById('videoPlaceholder');
+            const isConnecting = placeholder.style.display === 'block' && 
+                                placeholder.innerHTML.includes('连接中');
+            
+            const result = hasVideoStream || hasActiveConnection || isConnecting;
+            
+            // 调试日志（可选）
+            if (pc) {
+                console.log(`视频状态检查: stream=${hasVideoStream}, connection=${hasActiveConnection}, connecting=${isConnecting}, ice=${pc.iceConnectionState}, pc=${pc.connectionState}`);
+            }
+            
+            return result;
+        }
+        
+        // 视频流加载 - 使用WebRTC
+        let pc = null; // WebRTC PeerConnection
+        let isConnecting = false; // 标记是否正在连接中
+        
+        function loadVideoStream(rtspUrl) {
+            // 防止重复连接
+            if (isConnecting) {
+                console.log('已有连接正在建立中，忽略重复请求');
+                return;
+            }
+            
+            // 先清理旧的连接
+            if (pc) {
+                console.log('清理现有WebRTC连接...');
+                try {
+                    pc.close();
+                } catch (e) {
+                    console.warn('清理旧连接时出错:', e);
+                }
+                pc = null;
+            }
+            
+            const videoPlayer = document.getElementById('videoPlayer');
+            if (videoPlayer.srcObject) {
+                try {
+                    videoPlayer.srcObject.getTracks().forEach(track => track.stop());
+                    videoPlayer.srcObject = null;
+                } catch (e) {
+                    console.warn('清理视频流时出错:', e);
+                }
+            }
+            
+            // 隐藏视频元素
+            videoPlayer.style.display = 'none';
+            
+            // 提取流名称，默认是 detection
+            const streamName = 'detection';
+            
+            // MediaMTX WebRTC端点
+            const webrtcUrl = `http://localhost:8889/${streamName}`;
+            
+            console.log('尝试连接WebRTC流:', webrtcUrl);
+            
+            // 标记正在连接
+            isConnecting = true;
+            
+            // 显示加载状态
+            const placeholder = document.getElementById('videoPlaceholder');
+            placeholder.style.display = 'block';
+            placeholder.innerHTML = `
+                <div class="spinner-border text-success" role="status" style="width: 4rem; height: 4rem;">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+                <p class="mt-3 text-white" style="font-size: 1.1rem;">正在连接视频流...</p>
+            `;
+            
+            // 延迟5秒等待检测器启动并开始推流（增加等待时间）
+            setTimeout(() => {
+                if (isConnecting) {  // 确保仍在连接状态
+                    startWebRTC(streamName);
+                }
+            }, 5000);
+        }
+        
+        async function startWebRTC(streamName) {
+            try {
+                const videoPlayer = document.getElementById('videoPlayer');
+                const placeholder = document.getElementById('videoPlaceholder');
+                
+                // 创建WebRTC连接
+                pc = new RTCPeerConnection({
+                    iceServers: [{
+                        urls: 'stun:stun.l.google.com:19302'
+                    }]
+                });
+                
+                // 处理接收到的视频流
+                let trackCount = 0;
+                pc.ontrack = (event) => {
+                    trackCount++;
+                    console.log(`收到视频轨道 #${trackCount}`, {
+                        kind: event.track.kind,
+                        id: event.track.id,
+                        readyState: event.track.readyState,
+                        streams: event.streams.length
+                    });
+                    
+                    if (event.streams && event.streams.length > 0) {
+                        const stream = event.streams[0];
+                        console.log('设置视频流', {
+                            id: stream.id,
+                            tracks: stream.getTracks().map(t => ({kind: t.kind, id: t.id, enabled: t.enabled}))
+                        });
+                        
+                        videoPlayer.srcObject = stream;
+                        
+                        // 强制静音以允许autoplay
+                        videoPlayer.muted = true;
+                        
+                        // 多种方式尝试播放
+                        const tryPlay = () => {
+                            console.log('尝试播放视频...');
+                            videoPlayer.play().then(() => {
+                                console.log('✅ 视频开始播放', {
+                                    width: videoPlayer.videoWidth,
+                                    height: videoPlayer.videoHeight,
+                                    paused: videoPlayer.paused,
+                                    muted: videoPlayer.muted
+                                });
+                                
+                                // 标记连接完成
+                                isConnecting = false;
+                                
+                                // 延迟显示，确保有画面
+                                setTimeout(() => {
+                                    videoPlayer.style.display = 'block';
+                                    placeholder.style.display = 'none';
+                                    
+                                    // 显示视频信息
+                                    if (videoPlayer.videoWidth > 0) {
+                                        document.getElementById('videoInfo').textContent = 
+                                            `${videoPlayer.videoWidth}×${videoPlayer.videoHeight}`;
+                                    }
+                                    
+                                    // 显示控制按钮
+                                    document.getElementById('muteBtn').style.display = 'inline-block';
+                                    document.getElementById('fullscreenBtn').style.display = 'inline-block';
+                                }, 500);
+                                
+                            }).catch(err => {
+                                console.error('❌ 播放失败:', err);
+                                isConnecting = false;
+                                // 用户交互后重试
+                                videoPlayer.onclick = () => {
+                                    videoPlayer.play();
+                                    videoPlayer.onclick = null;
+                                };
+                                showVideoError('点击视频区域开始播放');
+                            });
+                        };
+                        
+                        // 等待元数据加载
+                        if (videoPlayer.readyState >= 2) {
+                            console.log('视频已就绪，直接播放');
+                            tryPlay();
+                        } else {
+                            videoPlayer.onloadedmetadata = () => {
+                                console.log('✅ 视频元数据加载完成');
+                                tryPlay();
+                            };
+                            
+                            videoPlayer.oncanplay = () => {
+                                console.log('✅ 视频可以播放');
+                            };
+                        }
+                        
+                        videoPlayer.onerror = (err) => {
+                            console.error('❌ 视频错误:', err, videoPlayer.error);
+                            isConnecting = false;
+                            showVideoError('视频加载错误: ' + (videoPlayer.error ? videoPlayer.error.message : '未知错误'));
+                        };
+                    }
+                };
+                
+                // ICE连接状态变化
+                pc.oniceconnectionstatechange = () => {
+                    console.log('🔗 ICE连接状态:', pc.iceConnectionState);
+                    if (pc.iceConnectionState === 'connected') {
+                        console.log('✅ WebRTC连接已建立');
+                    } else if (pc.iceConnectionState === 'failed') {
+                        console.error('❌ ICE连接失败');
+                        isConnecting = false;
+                        showVideoError('视频连接失败，请检查网络');
+                    } else if (pc.iceConnectionState === 'disconnected') {
+                        console.warn('⚠️ ICE连接断开');
+                        isConnecting = false;
+                        showVideoError('视频连接断开');
+                    }
+                };
+                
+                // 连接状态变化
+                pc.onconnectionstatechange = () => {
+                    console.log('🔗 连接状态:', pc.connectionState);
+                    if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+                        isConnecting = false;
+                    }
+                };
+                
+                // ICE候选者
+                pc.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        console.log('🧊 ICE候选者:', event.candidate.candidate);
+                    }
+                };
+                
+                // 添加接收器
+                pc.addTransceiver('video', { direction: 'recvonly' });
+                pc.addTransceiver('audio', { direction: 'recvonly' });
+                
+                // 创建Offer
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                
+                // 发送Offer到MediaMTX
+                const response = await fetch(`http://localhost:8889/${streamName}/whep`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/sdp'
+                    },
+                    body: offer.sdp
+                });
+                
+                if (!response.ok) {
+                    isConnecting = false;
+                    throw new Error(`WebRTC连接失败: ${response.status}`);
+                }
+                
+                // 设置远程描述
+                const answerSdp = await response.text();
+                await pc.setRemoteDescription(new RTCSessionDescription({
+                    type: 'answer',
+                    sdp: answerSdp
+                }));
+                
+                console.log('WebRTC握手完成，等待视频流...');
+                
+            } catch (error) {
+                console.error('WebRTC连接错误:', error);
+                isConnecting = false;
+                showVideoError(`无法连接视频流: ${error.message}`);
+            }
+        }
+        
+        function showVideoError(message) {
+            const placeholder = document.getElementById('videoPlaceholder');
+            const videoPlayer = document.getElementById('videoPlayer');
+            
+            // 如果消息是"点击视频区域开始播放"，不隐藏video元素
+            if (message.includes('点击')) {
+                placeholder.innerHTML = `
+                    <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(255,193,7,0.9); padding: 10px 20px; border-radius: 5px; z-index: 100;">
+                        <i class="bi bi-hand-index"></i> ${message}
+                    </div>
+                `;
+                videoPlayer.style.display = 'block';
+                videoPlayer.style.cursor = 'pointer';
+            } else {
+                placeholder.style.display = 'block';
+                placeholder.innerHTML = `
+                    <i class="bi bi-exclamation-triangle" style="font-size: 5rem; color: #ffc107;"></i>
+                    <p class="mt-3 text-white" style="font-size: 1.1rem;">${message}</p>
+                    <p class="text-white-50" style="font-size: 0.95rem;">备用方案：使用VLC播放器打开<br><code style="color: #ffc107;">rtsp://localhost:8554/detection</code></p>
+                `;
+            }
+        }
+
+        function stopVideoStream() {
+            // 标记连接已停止
+            isConnecting = false;
+            
+            // 关闭WebRTC连接
+            if (pc) {
+                try {
+                    pc.close();
+                } catch (e) {
+                    console.warn('关闭WebRTC连接时出错:', e);
+                }
+                pc = null;
+            }
+            
+            const videoPlayer = document.getElementById('videoPlayer');
+            const placeholder = document.getElementById('videoPlaceholder');
+            
+            videoPlayer.style.display = 'none';
+            if (videoPlayer.srcObject) {
+                try {
+                    videoPlayer.srcObject.getTracks().forEach(track => track.stop());
+                    videoPlayer.srcObject = null;
+                } catch (e) {
+                    console.warn('清理视频流时出错:', e);
+                }
+            }
+            
+            // 隐藏控制按钮
+            document.getElementById('muteBtn').style.display = 'none';
+            document.getElementById('fullscreenBtn').style.display = 'none';
+            document.getElementById('videoInfo').textContent = '';
+            
+            placeholder.style.display = 'block';
+            placeholder.innerHTML = `
+                <i class="bi bi-camera-video-off" style="font-size: 5rem;"></i>
+                <p class="mt-3" style="font-size: 1.1rem;">点击"启动检测"开始实时监控</p>
+            `;
+        }
+
+        // 通知
+        function showNotification(type, message) {
+            const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+            const notification = document.createElement('div');
+            notification.className = `alert ${bgClass} text-white position-fixed top-0 end-0 m-3`;
+            notification.style.zIndex = '9999';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // 退出登录
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('退出失败:', error);
+            }
+        }
+
+        // 视频控制
+        document.getElementById('muteBtn').addEventListener('click', function() {
+            const videoPlayer = document.getElementById('videoPlayer');
+            videoPlayer.muted = !videoPlayer.muted;
+            this.innerHTML = videoPlayer.muted ? 
+                '<i class="bi bi-volume-mute"></i> 静音' : 
+                '<i class="bi bi-volume-up"></i> 取消静音';
+        });
+        
+        document.getElementById('fullscreenBtn').addEventListener('click', function() {
+            const videoPlayer = document.getElementById('videoPlayer');
+            if (videoPlayer.requestFullscreen) {
+                videoPlayer.requestFullscreen();
+            } else if (videoPlayer.webkitRequestFullscreen) {
+                videoPlayer.webkitRequestFullscreen();
+            } else if (videoPlayer.mozRequestFullScreen) {
+                videoPlayer.mozRequestFullScreen();
+            }
+        });
+        
+        // 页面加载时检查状态
+        window.addEventListener('load', function() {
+            updateStatus();
+        });
+        
+        // 页面可见性变化时处理
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                // 页面变为可见时，重新检查状态
+                console.log('页面重新可见，检查系统状态...');
+                updateStatus();
+            }
+        });
+    </script>
+</body>
+</html>
+
